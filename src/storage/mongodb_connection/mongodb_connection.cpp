@@ -133,10 +133,11 @@ void MongoDBConnection::create_geospatial_indexes() {
         mongocxx::options::index index_options;
         index_options.name("geometry_2dsphere_idx");
         
-        bpo_cas.create_index(
-            index_spec.view(),
-            index_options
-        );
+        try {
+            bpo_cas.create_index(index_spec.view(), index_options);
+        } catch (const std::exception& e) {
+            std::cerr << "Index may already exist: " << e.what() << std::endl;
+        }
 
         bsoncxx::builder::stream::document hash_index_spec;
         hash_index_spec << "hash" << 1;
