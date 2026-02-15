@@ -66,21 +66,6 @@ private:
     static bool validate_polygon_coordinates(const bsoncxx::array::view& coordinates);
 };
 
-class BPOStorage {
-public:
-    explicit BPOStorage(mongocxx::collection collection);
-
-    bool save(const BPO& bpo);
-    std::unique_ptr<BPO> load(const std::string& hash);
-    bool exists(const std::string& hash);
-    bool remove(const std::string& hash);
-
-    std::vector<std::unique_ptr<BPO>> find_by_geometry_type(GeometryType type);
-    std::vector<std::unique_ptr<BPO>> find_in_bbox(double min_lon, double min_lat, double max_lon, double max_lat);
-
-private:
-    mongocxx::collection collection_;
-};
 
 }
 }
