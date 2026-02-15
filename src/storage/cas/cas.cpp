@@ -1,6 +1,9 @@
 #include "cas.h"
-#include "bpo_storage/bpo_storage.h"
+#include "storage/bpo_storage/bpo_storage.h"
 #include <bsoncxx/builder/stream/document.hpp>
+#include <bsoncxx/builder/basic/document.hpp>
+#include <bsoncxx/builder/basic/array.hpp>
+#include <bsoncxx/builder/basic/kvp.hpp>
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/types.hpp>
 #include <openssl/sha.h>
@@ -113,7 +116,7 @@ std::vector<std::string> CAS::get_all_hashes() {
         
         for (auto&& doc : cursor) {
             if (doc["hash"]) {
-                hashes.push_back(doc["hash"].get_string().value.to_string());
+                hashes.push_back(std::string(doc["hash"].get_string().value));
             }
         }
     } catch (const std::exception& e) {
@@ -193,22 +196,49 @@ std::vector<std::unique_ptr<BPO>> CAS::find_in_bbox(double min_lon, double min_l
     std::vector<std::unique_ptr<BPO>> results;
     
     try {
-        bsoncxx::builder::stream::document filter_builder;
-        filter_builder << "geometry" << bsoncxx::builder::stream::open_document
-                       << "$geoWithin" << bsoncxx::builder::stream::open_document
-                       << "$geometry" << bsoncxx::builder::stream::open_document
-                       << "type" << "Polygon"
-                       << "coordinates" << bsoncxx::builder::stream::open_array
-                       << bsoncxx::builder::stream::open_array
-                       << bsoncxx::builder::stream::open_array << min_lon << min_lat << bsoncxx::builder::stream::close_array
-                       << bsoncxx::builder::stream::open_array << max_lon << min_lat << bsoncxx::builder::stream::close_array
-                       << bsoncxx::builder::stream::open_array << max_lon << max_lat << bsoncxx::builder::stream::close_array
-                       << bsoncxx::builder::stream::open_array << min_lon << max_lat << bsoncxx::builder::stream::close_array
-                       << bsoncxx::builder::stream::open_array << min_lon << min_lat << bsoncxx::builder::stream::close_array
-                       << bsoncxx::builder::stream::close_array
-                       << bsoncxx::builder::stream::close_document
-                       << bsoncxx::builder::stream::close_document
-                       << bsoncxx::builder::stream::close_document;
+        bsoncxx::builder::basic::document filter_builder;
+        
+        bsoncxx::builder::basic::array ring_array;
+        
+        bsoncxx::builder::basic::array point1;
+        point1.append(min_lon);
+        point1.append(min_lat);
+        ring_array.append(point1);
+        
+        bsoncxx::builder::basic::array point2;
+        point2.append(max_lon);
+        point2.append(min_lat);
+        ring_array.append(point2);
+        
+        bsoncxx::builder::basic::array point3;
+        point3.append(max_lon);
+        point3.append(max_lat);
+        ring_array.append(point3);
+        
+        bsoncxx::builder::basic::array point4;
+        point4.append(min_lon);
+        point4.append(max_lat);
+        ring_array.append(point4);
+        
+        bsoncxx::builder::basic::array point5;
+        point5.append(min_lon);
+        point5.append(min_lat);
+        ring_array.append(point5);
+        
+        bsoncxx::builder::basic::array coords_array;
+        coords_array.append(ring_array);
+        
+        bsoncxx::builder::basic::document geometry_doc;
+        geometry_doc.append(bsoncxx::builder::basic::kvp("type", "Polygon"));
+        geometry_doc.append(bsoncxx::builder::basic::kvp("coordinates", coords_array));
+        
+        bsoncxx::builder::basic::document geo_within_doc;
+        geo_within_doc.append(bsoncxx::builder::basic::kvp("$geometry", geometry_doc));
+        
+        bsoncxx::builder::basic::document geometry_filter;
+        geometry_filter.append(bsoncxx::builder::basic::kvp("$geoWithin", geo_within_doc));
+        
+        filter_builder.append(bsoncxx::builder::basic::kvp("geometry", geometry_filter));
         
         auto cursor = collection_.find(filter_builder.view());
         

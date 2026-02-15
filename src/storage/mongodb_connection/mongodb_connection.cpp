@@ -77,8 +77,7 @@ bool MongoDBConnection::is_initialized() {
         auto indexes = bpo_cas.list_indexes();
         bool has_geospatial_index = false;
         for (auto&& index : indexes) {
-            auto index_doc = index.view();
-            if (index_doc["name"].get_string().value == std::string("geometry_2dsphere_idx")) {
+            if (index["name"] && index["name"].get_string().value == std::string("geometry_2dsphere_idx")) {
                 has_geospatial_index = true;
                 break;
             }

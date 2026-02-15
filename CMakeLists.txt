@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 
-find_package(mongocxx REQUIRED)
-find_package(bsoncxx REQUIRED)
+find_package(mongocxx REQUIRED PATHS /usr/local/lib/cmake)
+find_package(bsoncxx REQUIRED PATHS /usr/local/lib/cmake)
 find_package(OpenSSL REQUIRED)
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
