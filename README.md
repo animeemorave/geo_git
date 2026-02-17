@@ -54,17 +54,5 @@ make
 ./geoversion "mongodb://user:password@host:27017"
 ```
 
-### Структура проекта
-
-- `src/`
-  - `main.cpp` — точка входа
-  - `storage/`
-    - `mongodb_connection/` — работа с MongoDB
-    - `bpo_storage/` — модель БПО и валидация GeoJSON
-  - `utils/`
-    - `logger/` — логгер
-- `src/schemas/init_mongodb.js` — инициализация БД
-- `remark.md` — комментарии научного руководителя, формулировка цели/задач НИР
-
 ### Автор: 
 - Никоненко Егор
