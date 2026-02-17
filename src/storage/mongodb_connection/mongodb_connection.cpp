@@ -5,6 +5,10 @@
 #include <bsoncxx/json.hpp>
 #include <iostream>
 
+namespace {
+    mongocxx::instance global_mongo_instance{};
+}
+
 namespace geoversion {
 namespace storage {
 
@@ -12,8 +16,7 @@ MongoDBConnection::MongoDBConnection(
     const std::string& connection_string,
     const std::string& database_name
 ) : connection_string_(connection_string),
-    database_name_(database_name),
-    instance_{}
+    database_name_(database_name)
 {
     try {
         mongocxx::uri uri(connection_string_);

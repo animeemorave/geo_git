@@ -46,7 +46,6 @@ public:
 private:
     std::string connection_string_;
     std::string database_name_;
-    mongocxx::instance instance_;
     std::unique_ptr<mongocxx::client> client_;
     mongocxx::database database_;
 
