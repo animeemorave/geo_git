@@ -5,6 +5,10 @@
 #include <bsoncxx/json.hpp>
 #include <iostream>
 
+namespace {
+    mongocxx::instance global_mongo_instance{};
+}
+
 namespace geoversion {
 namespace storage {
 
@@ -12,8 +16,7 @@ MongoDBConnection::MongoDBConnection(
     const std::string& connection_string,
     const std::string& database_name
 ) : connection_string_(connection_string),
-    database_name_(database_name),
-    instance_{}
+    database_name_(database_name)
 {
     try {
         mongocxx::uri uri(connection_string_);
@@ -77,8 +80,7 @@ bool MongoDBConnection::is_initialized() {
         auto indexes = bpo_cas.list_indexes();
         bool has_geospatial_index = false;
         for (auto&& index : indexes) {
-            auto index_doc = index.view();
-            if (index_doc["name"].get_string().value == std::string("geometry_2dsphere_idx")) {
+            if (index["name"] && index["name"].get_string().value == std::string("geometry_2dsphere_idx")) {
                 has_geospatial_index = true;
                 break;
             }
