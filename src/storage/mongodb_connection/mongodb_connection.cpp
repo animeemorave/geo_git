@@ -53,6 +53,10 @@ mongocxx::collection MongoDBConnection::get_version_objects_collection() {
     return database_.collection("version_objects");
 }
 
+mongocxx::collection MongoDBConnection::get_branches_collection() {
+    return database_.collection("branches");
+}
+
 mongocxx::collection MongoDBConnection::get_version_deltas_collection() {
     return database_.collection("version_deltas");
 }
@@ -65,6 +69,7 @@ bool MongoDBConnection::is_initialized() {
             "situations",
             "situation_versions",
             "version_objects",
+            "branches",
             "version_deltas"
         };
 
@@ -216,6 +221,30 @@ void MongoDBConnection::create_geospatial_indexes() {
         version_objects.create_index(
             version_bpo_hash_index.view(),
             version_bpo_hash_options
+        );
+
+        auto branches = get_branches_collection();
+
+        bsoncxx::builder::stream::document branch_unique_index;
+        branch_unique_index << "situation_id" << 1 << "name" << 1;
+
+        mongocxx::options::index branch_unique_options;
+        branch_unique_options.name("branch_unique_idx").unique(true);
+
+        branches.create_index(
+            branch_unique_index.view(),
+            branch_unique_options
+        );
+
+        bsoncxx::builder::stream::document branch_situation_index;
+        branch_situation_index << "situation_id" << 1;
+
+        mongocxx::options::index branch_situation_options;
+        branch_situation_options.name("branch_situation_idx");
+
+        branches.create_index(
+            branch_situation_index.view(),
+            branch_situation_options
         );
 
         auto version_deltas = get_version_deltas_collection();
