@@ -122,6 +122,41 @@ db.createCollection('version_objects', {
     }
 });
 
+db.createCollection('branches', {
+    validator: {
+        $jsonSchema: {
+            bsonType: 'object',
+            required: ['branch_id', 'situation_id', 'name', 'created_at'],
+            properties: {
+                branch_id: {
+                    bsonType: 'string',
+                    description: 'Unique branch identifier'
+                },
+                situation_id: {
+                    bsonType: 'string',
+                    description: 'Reference to situation'
+                },
+                name: {
+                    bsonType: 'string',
+                    description: 'Branch name (e.g. "main", "feature/roads")'
+                },
+                head_version_id: {
+                    bsonType: 'string',
+                    description: 'Current HEAD version (absent for empty branch)'
+                },
+                created_at: {
+                    bsonType: 'date',
+                    description: 'Creation timestamp'
+                },
+                updated_at: {
+                    bsonType: 'date',
+                    description: 'Last HEAD advance timestamp'
+                }
+            }
+        }
+    }
+});
+
 db.createCollection('version_deltas', {
     validator: {
         $jsonSchema: {
@@ -212,6 +247,17 @@ db.version_objects.createIndex(
 db.version_objects.createIndex(
     { 'version_id': 1, 'bpo_hash': 1 },
     { name: 'version_bpo_hash_idx' }
+);
+
+// Indexes for branches
+db.branches.createIndex(
+    { 'situation_id': 1, 'name': 1 },
+    { name: 'branch_unique_idx', unique: true }
+);
+
+db.branches.createIndex(
+    { 'situation_id': 1 },
+    { name: 'branch_situation_idx' }
 );
 
 // Index for version deltas
