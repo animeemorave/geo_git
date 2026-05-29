@@ -249,6 +249,17 @@ db.version_objects.createIndex(
     { name: 'version_objects_hash_idx' }
 );
 
+// Indexes for branches
+db.branches.createIndex(
+    { 'situation_id': 1, 'name': 1 },
+    { name: 'branches_situation_name_idx', unique: true }
+);
+
+db.branches.createIndex(
+    { 'situation_id': 1 },
+    { name: 'branches_situation_idx' }
+);
+
 // Index for version deltas
 db.version_deltas.createIndex(
     { 'delta_id': 1 },

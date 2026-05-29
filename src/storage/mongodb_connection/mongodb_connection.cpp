@@ -225,6 +225,31 @@ void MongoDBConnection::create_geospatial_indexes() {
             version_objects_hash_options
         );
 
+        auto branches = get_branches_collection();
+
+        bsoncxx::builder::stream::document branches_unique_index;
+        branches_unique_index << "situation_id" << 1
+                              << "name" << 1;
+
+        mongocxx::options::index branches_unique_options;
+        branches_unique_options.name("branches_situation_name_idx").unique(true);
+
+        branches.create_index(
+            branches_unique_index.view(),
+            branches_unique_options
+        );
+
+        bsoncxx::builder::stream::document branches_situation_index;
+        branches_situation_index << "situation_id" << 1;
+
+        mongocxx::options::index branches_situation_options;
+        branches_situation_options.name("branches_situation_idx");
+
+        branches.create_index(
+            branches_situation_index.view(),
+            branches_situation_options
+        );
+
         auto version_deltas = get_version_deltas_collection();
 
         bsoncxx::builder::stream::document delta_id_index;
