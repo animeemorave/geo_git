@@ -16,29 +16,20 @@ namespace storage {
 
 using bsoncxx::builder::basic::kvp;
 using bsoncxx::builder::basic::make_document;
-using bsoncxx::builder::basic::make_array;
 
-SituationStorage::SituationStorage(MongoDBConnection& connection)
-    : connection_(connection)
-{}
+SituationStorage::SituationStorage(MongoDBConnection& connection) : connection_(connection) {}
 
-std::string SituationStorage::create(const std::string& name,
-                                     const std::string& description)
-{
+std::string SituationStorage::create(const std::string& name, const std::string& description) {
     if (name.empty()) {
         throw std::runtime_error("Situation name must not be empty");
     }
 
-    const std::string situation_id = utils::generate_uuid();
+    std::string situation_id = utils::generate_uuid();
     const auto now = bsoncxx::types::b_date{std::chrono::system_clock::now()};
 
-    auto doc = make_document(
-        kvp("situation_id",  situation_id),
-        kvp("name",          name),
-        kvp("description",   description),
-        kvp("created_at",    now),
-        kvp("updated_at",    now)
-    );
+    auto doc = make_document(kvp("situation_id", situation_id), kvp("name", name),
+                             kvp("description", description), kvp("created_at", now),
+                             kvp("updated_at", now));
 
     auto collection = connection_.get_situations_collection();
     auto result = collection.insert_one(doc.view());
@@ -50,8 +41,7 @@ std::string SituationStorage::create(const std::string& name,
     return situation_id;
 }
 
-std::optional<Situation> SituationStorage::get(const std::string& situation_id) const
-{
+std::optional<Situation> SituationStorage::get(const std::string& situation_id) const {
     auto collection = connection_.get_situations_collection();
     auto filter = make_document(kvp("situation_id", situation_id));
 
@@ -63,8 +53,7 @@ std::optional<Situation> SituationStorage::get(const std::string& situation_id) 
     return from_document(result->view());
 }
 
-std::vector<Situation> SituationStorage::list() const
-{
+std::vector<Situation> SituationStorage::list() const {
     auto collection = connection_.get_situations_collection();
 
     mongocxx::options::find opts;
@@ -80,10 +69,8 @@ std::vector<Situation> SituationStorage::list() const
     return result;
 }
 
-void SituationStorage::update(const std::string& situation_id,
-                              const std::string& name,
-                              const std::string& description)
-{
+void SituationStorage::update(const std::string& situation_id, const std::string& name,
+                              const std::string& description) {
     if (name.empty()) {
         throw std::runtime_error("Situation name must not be empty");
     }
@@ -92,12 +79,9 @@ void SituationStorage::update(const std::string& situation_id,
     auto filter = make_document(kvp("situation_id", situation_id));
 
     auto update_doc = make_document(
-        kvp("$set", make_document(
-            kvp("name",        name),
-            kvp("description", description),
-            kvp("updated_at",  bsoncxx::types::b_date{std::chrono::system_clock::now()})
-        ))
-    );
+        kvp("$set", make_document(kvp("name", name), kvp("description", description),
+                                  kvp("updated_at",
+                                      bsoncxx::types::b_date{std::chrono::system_clock::now()}))));
 
     auto result = collection.update_one(filter.view(), update_doc.view());
 
@@ -106,8 +90,7 @@ void SituationStorage::update(const std::string& situation_id,
     }
 }
 
-void SituationStorage::remove(const std::string& situation_id)
-{
+void SituationStorage::remove(const std::string& situation_id) {
     if (!get(situation_id)) {
         throw std::runtime_error("Situation not found: " + situation_id);
     }
@@ -126,11 +109,8 @@ void SituationStorage::remove(const std::string& situation_id)
     }
 
     auto objects_coll = connection_.get_version_objects_collection();
-    auto objects_filter = make_document(
-        kvp("version_id", make_document(
-            kvp("$in", version_ids_arr.view())
-        ))
-    );
+    auto objects_filter =
+        make_document(kvp("version_id", make_document(kvp("$in", version_ids_arr.view()))));
     objects_coll.delete_many(objects_filter.view());
 
     versions_coll.delete_many(version_filter.view());
@@ -139,8 +119,7 @@ void SituationStorage::remove(const std::string& situation_id)
     situations_coll.delete_one(make_document(kvp("situation_id", situation_id)).view());
 }
 
-Situation SituationStorage::from_document(const bsoncxx::document::view& doc) const
-{
+Situation SituationStorage::from_document(const bsoncxx::document::view& doc) const {
     Situation s;
 
     if (doc["situation_id"]) {
@@ -153,18 +132,14 @@ Situation SituationStorage::from_document(const bsoncxx::document::view& doc) co
         s.description = std::string(doc["description"].get_string().value);
     }
     if (doc["created_at"]) {
-        s.created_at = std::chrono::system_clock::time_point{
-            doc["created_at"].get_date().value
-        };
+        s.created_at = std::chrono::system_clock::time_point{doc["created_at"].get_date().value};
     }
     if (doc["updated_at"]) {
-        s.updated_at = std::chrono::system_clock::time_point{
-            doc["updated_at"].get_date().value
-        };
+        s.updated_at = std::chrono::system_clock::time_point{doc["updated_at"].get_date().value};
     }
 
     return s;
 }
 
-}
-}
+} // namespace storage
+} // namespace geoversion

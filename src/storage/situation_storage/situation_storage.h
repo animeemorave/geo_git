@@ -26,8 +26,7 @@ public:
     std::string create(const std::string& name, const std::string& description = "");
     std::optional<Situation> get(const std::string& situation_id) const;
     std::vector<Situation> list() const;
-    void update(const std::string& situation_id,
-                const std::string& name,
+    void update(const std::string& situation_id, const std::string& name,
                 const std::string& description);
     void remove(const std::string& situation_id);
 
@@ -37,5 +36,5 @@ private:
     Situation from_document(const bsoncxx::document::view& doc) const;
 };
 
-}
-}
+} // namespace storage
+} // namespace geoversion

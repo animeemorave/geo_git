@@ -23,9 +23,10 @@ int main(int argc, char* argv[]) {
         utils::Logger::info("MongoDB connection successful");
 
         if (!mongo.is_initialized()) {
-            utils::Logger::warning("Database not initialized. Please run init_mongodb.js script first.");
+            utils::Logger::warning(
+                "Database not initialized. Please run init_mongodb.js script first.");
             utils::Logger::info("Attempting to create indexes...");
-            
+
             if (mongo.initialize_database()) {
                 utils::Logger::info("Database indexes created successfully");
             } else {

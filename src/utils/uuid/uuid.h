@@ -8,4 +8,4 @@ namespace utils {
 std::string generate_uuid();
 
 }
-}
+} // namespace geoversion

@@ -30,5 +30,5 @@ std::string generate_uuid() {
     return oss.str();
 }
 
-}
-}
+} // namespace utils
+} // namespace geoversion

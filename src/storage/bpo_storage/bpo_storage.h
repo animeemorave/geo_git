@@ -28,7 +28,8 @@ class BPO {
 public:
     BPO();
     BPO(const bsoncxx::document::view& doc);
-    BPO(const std::string& hash, const bsoncxx::document::view& geometry, const bsoncxx::document::view& attributes);
+    BPO(const std::string& hash, const bsoncxx::document::view& geometry,
+        const bsoncxx::document::view& attributes);
 
     std::string get_hash() const;
     bsoncxx::document::view get_geometry() const;
@@ -68,6 +69,5 @@ public:
     static bool validate_polygon_coordinates(const bsoncxx::array::view& coordinates);
 };
 
-
-}
-}
+} // namespace storage
+} // namespace geoversion

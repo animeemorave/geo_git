@@ -34,15 +34,21 @@ RUN wget https://github.com/mongodb/mongo-cxx-driver/releases/download/r3.8.1/mo
     make install && \
     cd / && rm -rf /tmp/mongo-cxx-driver-r3.8.1*
 
+RUN apt-get update && apt-get install -y \
+    clang-format \
+    clang-tidy \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY CMakeLists.txt ./
 COPY CMakeLists_test.txt ./CMakeLists.txt
 COPY src ./src
 COPY tests ./tests
+COPY .clang-format .clang-tidy ./
 
 RUN mkdir -p build && cd build && \
-    cmake .. && \
+    cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .. && \
     make
 
 WORKDIR /app/build

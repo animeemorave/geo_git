@@ -9,12 +9,7 @@
 namespace geoversion {
 namespace utils {
 
-enum class LogLevel {
-    DEBUG,
-    INFO,
-    WARNING,
-    ERROR
-};
+enum class LogLevel { DEBUG, INFO, WARNING, ERROR };
 
 class Logger {
 public:
@@ -29,5 +24,5 @@ private:
     static std::string get_timestamp();
 };
 
-}
-}
+} // namespace utils
+} // namespace geoversion

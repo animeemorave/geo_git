@@ -14,10 +14,8 @@ namespace storage {
 
 class MongoDBConnection {
 public:
-    explicit MongoDBConnection(
-        const std::string& connection_string = "mongodb://localhost:27017",
-        const std::string& database_name = "geoversion"
-    );
+    explicit MongoDBConnection(const std::string& connection_string = "mongodb://localhost:27017",
+                               const std::string& database_name = "geoversion");
 
     ~MongoDBConnection();
 
@@ -56,5 +54,5 @@ private:
     void create_geospatial_indexes();
 };
 
-}
-}
+} // namespace storage
+} // namespace geoversion
