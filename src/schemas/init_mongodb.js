@@ -241,23 +241,23 @@ db.situation_versions.createIndex(
 // Indexes for version objects
 db.version_objects.createIndex(
     { 'version_id': 1, 'object_id': 1 },
-    { name: 'version_object_unique_idx', unique: true }
+    { name: 'version_objects_unique_idx', unique: true }
 );
 
 db.version_objects.createIndex(
     { 'version_id': 1, 'bpo_hash': 1 },
-    { name: 'version_bpo_hash_idx' }
+    { name: 'version_objects_hash_idx' }
 );
 
 // Indexes for branches
 db.branches.createIndex(
     { 'situation_id': 1, 'name': 1 },
-    { name: 'branch_unique_idx', unique: true }
+    { name: 'branches_situation_name_idx', unique: true }
 );
 
 db.branches.createIndex(
     { 'situation_id': 1 },
-    { name: 'branch_situation_idx' }
+    { name: 'branches_situation_idx' }
 );
 
 // Index for version deltas

@@ -1,0 +1,14 @@
+---
+Checks: >
+  bugprone-*,
+  performance-*,
+  misc-*,
+  clang-analyzer-*,
+  -bugprone-easily-swappable-parameters,
+  -misc-non-private-member-variables-in-classes,
+  -misc-include-cleaner,
+  -misc-use-anonymous-namespace
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*/src/.*'
+FormatStyle: file
+...

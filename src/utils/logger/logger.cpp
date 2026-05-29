@@ -6,7 +6,7 @@ namespace utils {
 void Logger::log(LogLevel level, const std::string& message) {
     std::string level_str = level_to_string(level);
     std::string timestamp = get_timestamp();
-    
+
     std::cout << "[" << timestamp << "] [" << level_str << "] " << message << std::endl;
 }
 
@@ -44,9 +44,7 @@ std::string Logger::level_to_string(LogLevel level) {
 std::string Logger::get_timestamp() {
     auto now = std::chrono::system_clock::now();
     auto time = std::chrono::system_clock::to_time_t(now);
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-        now.time_since_epoch()
-    ) % 1000;
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
 
     std::stringstream ss;
     ss << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
@@ -54,5 +52,5 @@ std::string Logger::get_timestamp() {
     return ss.str();
 }
 
-}
-}
+} // namespace utils
+} // namespace geoversion

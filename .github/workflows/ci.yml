@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  COMPOSE_PROJECT_NAME: geo_git
+
+jobs:
+  ci:
+    name: format, lint & tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Builds the image used for formatting, linting and tests.
+      # It contains the mongo drivers, clang-format/clang-tidy and the
+      # compiled project (with compile_commands.json for clang-tidy).
+      - name: Build test image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.test
+          load: true
+          tags: geo_git-tests:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: clang-format (check)
+        run: |
+          docker run --rm -w /app geo_git-tests:latest bash -c '
+            set -e
+            files=$(find src tests -type f \( -name "*.cpp" -o -name "*.h" \))
+            clang-format --dry-run --Werror $files
+          '
+
+      - name: clang-tidy (lint)
+        run: |
+          docker run --rm -w /app geo_git-tests:latest bash -c '
+            set -e
+            files=$(find src tests -type f -name "*.cpp")
+            clang-tidy -p build --warnings-as-errors="*" $files
+          '
+
+      - name: Start MongoDB
+        run: |
+          docker compose up -d mongodb
+          until [ "$(docker inspect -f '{{.State.Health.Status}}' geoversion_mongodb)" = "healthy" ]; do
+            echo "waiting for mongodb..."
+            sleep 2
+          done
+
+      - name: Run tests (ctest)
+        run: |
+          docker run --rm \
+            --network geo_git_geoversion_network \
+            -e MONGODB_URI=mongodb://mongodb:27017 \
+            geo_git-tests:latest ctest --output-on-failure
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v

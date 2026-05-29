@@ -6,23 +6,20 @@
 #include <iostream>
 
 namespace {
-    mongocxx::instance global_mongo_instance{};
+mongocxx::instance global_mongo_instance{};
 }
 
 namespace geoversion {
 namespace storage {
 
-MongoDBConnection::MongoDBConnection(
-    const std::string& connection_string,
-    const std::string& database_name
-) : connection_string_(connection_string),
-    database_name_(database_name)
-{
+MongoDBConnection::MongoDBConnection(const std::string& connection_string,
+                                     const std::string& database_name)
+    : connection_string_(connection_string), database_name_(database_name) {
     try {
         mongocxx::uri uri(connection_string_);
         client_ = std::make_unique<mongocxx::client>(uri);
         database_ = client_->database(database_name_);
-        
+
         std::cout << "Connected to MongoDB: " << connection_string_ << std::endl;
         std::cout << "Using database: " << database_name_ << std::endl;
     } catch (const std::exception& e) {
@@ -65,13 +62,8 @@ bool MongoDBConnection::is_initialized() {
     try {
         auto collections = database_.list_collection_names();
         std::vector<std::string> required_collections = {
-            "bpo_cas",
-            "situations",
-            "situation_versions",
-            "version_objects",
-            "branches",
-            "version_deltas"
-        };
+            "bpo_cas",         "situations", "situation_versions",
+            "version_objects", "branches",   "version_deltas"};
 
         for (const auto& required : required_collections) {
             bool found = false;
@@ -90,7 +82,8 @@ bool MongoDBConnection::is_initialized() {
         auto indexes = bpo_cas.list_indexes();
         bool has_geospatial_index = false;
         for (auto&& index : indexes) {
-            if (index["name"] && index["name"].get_string().value == std::string("geometry_2dsphere_idx")) {
+            if (index["name"] &&
+                index["name"].get_string().value == std::string("geometry_2dsphere_idx")) {
                 has_geospatial_index = true;
                 break;
             }
@@ -112,7 +105,7 @@ bool MongoDBConnection::initialize_database() {
 
         std::cout << "Initializing database indexes..." << std::endl;
         create_geospatial_indexes();
-        
+
         std::cout << "Database initialization complete." << std::endl;
         return true;
     } catch (const std::exception& e) {
@@ -124,10 +117,8 @@ bool MongoDBConnection::initialize_database() {
 bool MongoDBConnection::test_connection() {
     try {
         auto admin_db = client_->database("admin");
-        auto result = admin_db.run_command(
-            bsoncxx::builder::stream::document{} << "ping" << 1 
-            << bsoncxx::builder::stream::finalize
-        );
+        auto result = admin_db.run_command(bsoncxx::builder::stream::document{}
+                                           << "ping" << 1 << bsoncxx::builder::stream::finalize);
         return true;
     } catch (const std::exception& e) {
         std::cerr << "Connection test failed: " << e.what() << std::endl;
@@ -140,11 +131,12 @@ void MongoDBConnection::create_geospatial_indexes() {
         auto bpo_cas = get_bpo_cas_collection();
 
         bsoncxx::builder::stream::document index_spec;
-        index_spec << "geometry" << "2dsphere";
-        
+        index_spec << "geometry"
+                   << "2dsphere";
+
         mongocxx::options::index index_options;
         index_options.name("geometry_2dsphere_idx");
-        
+
         try {
             bpo_cas.create_index(index_spec.view(), index_options);
         } catch (const std::exception& e) {
@@ -153,124 +145,95 @@ void MongoDBConnection::create_geospatial_indexes() {
 
         bsoncxx::builder::stream::document hash_index_spec;
         hash_index_spec << "hash" << 1;
-        
+
         mongocxx::options::index hash_index_options;
         hash_index_options.name("hash_idx").unique(true);
-        
-        bpo_cas.create_index(
-            hash_index_spec.view(),
-            hash_index_options
-        );
+
+        bpo_cas.create_index(hash_index_spec.view(), hash_index_options);
 
         auto situations = get_situations_collection();
         bsoncxx::builder::stream::document situation_id_index;
         situation_id_index << "situation_id" << 1;
-        
+
         mongocxx::options::index situation_index_options;
         situation_index_options.name("situation_id_idx").unique(true);
-        
-        situations.create_index(
-            situation_id_index.view(),
-            situation_index_options
-        );
+
+        situations.create_index(situation_id_index.view(), situation_index_options);
 
         auto situation_versions = get_situation_versions_collection();
-        
+
         bsoncxx::builder::stream::document version_id_index;
         version_id_index << "version_id" << 1;
-        
+
         mongocxx::options::index version_index_options;
         version_index_options.name("version_id_idx").unique(true);
-        
-        situation_versions.create_index(
-            version_id_index.view(),
-            version_index_options
-        );
+
+        situation_versions.create_index(version_id_index.view(), version_index_options);
 
         bsoncxx::builder::stream::document situation_versions_lookup_index;
-        situation_versions_lookup_index << "situation_id" << 1 
-                                        << "created_at" << -1;
-        
+        situation_versions_lookup_index << "situation_id" << 1 << "created_at" << -1;
+
         mongocxx::options::index lookup_index_options;
         lookup_index_options.name("situation_versions_lookup_idx");
-        
-        situation_versions.create_index(
-            situation_versions_lookup_index.view(),
-            lookup_index_options
-        );
+
+        situation_versions.create_index(situation_versions_lookup_index.view(),
+                                        lookup_index_options);
 
         auto version_objects = get_version_objects_collection();
 
-        bsoncxx::builder::stream::document version_object_unique_index;
-        version_object_unique_index << "version_id" << 1 << "object_id" << 1;
+        bsoncxx::builder::stream::document version_objects_unique_index;
+        version_objects_unique_index << "version_id" << 1 << "object_id" << 1;
 
-        mongocxx::options::index version_object_unique_options;
-        version_object_unique_options.name("version_object_unique_idx").unique(true);
+        mongocxx::options::index version_objects_unique_options;
+        version_objects_unique_options.name("version_objects_unique_idx").unique(true);
 
-        version_objects.create_index(
-            version_object_unique_index.view(),
-            version_object_unique_options
-        );
+        version_objects.create_index(version_objects_unique_index.view(),
+                                     version_objects_unique_options);
 
-        bsoncxx::builder::stream::document version_bpo_hash_index;
-        version_bpo_hash_index << "version_id" << 1 << "bpo_hash" << 1;
+        bsoncxx::builder::stream::document version_objects_hash_index;
+        version_objects_hash_index << "version_id" << 1 << "bpo_hash" << 1;
 
-        mongocxx::options::index version_bpo_hash_options;
-        version_bpo_hash_options.name("version_bpo_hash_idx");
+        mongocxx::options::index version_objects_hash_options;
+        version_objects_hash_options.name("version_objects_hash_idx");
 
-        version_objects.create_index(
-            version_bpo_hash_index.view(),
-            version_bpo_hash_options
-        );
+        version_objects.create_index(version_objects_hash_index.view(),
+                                     version_objects_hash_options);
 
         auto branches = get_branches_collection();
 
-        bsoncxx::builder::stream::document branch_unique_index;
-        branch_unique_index << "situation_id" << 1 << "name" << 1;
+        bsoncxx::builder::stream::document branches_unique_index;
+        branches_unique_index << "situation_id" << 1 << "name" << 1;
 
-        mongocxx::options::index branch_unique_options;
-        branch_unique_options.name("branch_unique_idx").unique(true);
+        mongocxx::options::index branches_unique_options;
+        branches_unique_options.name("branches_situation_name_idx").unique(true);
 
-        branches.create_index(
-            branch_unique_index.view(),
-            branch_unique_options
-        );
+        branches.create_index(branches_unique_index.view(), branches_unique_options);
 
-        bsoncxx::builder::stream::document branch_situation_index;
-        branch_situation_index << "situation_id" << 1;
+        bsoncxx::builder::stream::document branches_situation_index;
+        branches_situation_index << "situation_id" << 1;
 
-        mongocxx::options::index branch_situation_options;
-        branch_situation_options.name("branch_situation_idx");
+        mongocxx::options::index branches_situation_options;
+        branches_situation_options.name("branches_situation_idx");
 
-        branches.create_index(
-            branch_situation_index.view(),
-            branch_situation_options
-        );
+        branches.create_index(branches_situation_index.view(), branches_situation_options);
 
         auto version_deltas = get_version_deltas_collection();
-        
+
         bsoncxx::builder::stream::document delta_id_index;
         delta_id_index << "delta_id" << 1;
-        
+
         mongocxx::options::index delta_index_options;
         delta_index_options.name("delta_id_idx").unique(true);
-        
-        version_deltas.create_index(
-            delta_id_index.view(),
-            delta_index_options
-        );
+
+        version_deltas.create_index(delta_id_index.view(), delta_index_options);
 
         bsoncxx::builder::stream::document delta_lookup_index;
-        delta_lookup_index << "from_version_id" << 1 
-                          << "to_version_id" << 1;
-        
+        delta_lookup_index << "from_version_id" << 1 << "to_version_id" << 1;
+
         mongocxx::options::index delta_lookup_options;
         delta_lookup_options.name("delta_lookup_idx");
-        
-        version_deltas.create_index(
-            delta_lookup_index.view(),
-            delta_lookup_options
-        );
+
+        version_deltas.create_index(delta_lookup_index.view(), delta_lookup_options);
 
         std::cout << "Geospatial indexes created successfully." << std::endl;
     } catch (const std::exception& e) {
@@ -279,5 +242,5 @@ void MongoDBConnection::create_geospatial_indexes() {
     }
 }
 
-}
-}
+} // namespace storage
+} // namespace geoversion

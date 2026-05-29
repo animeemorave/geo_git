@@ -124,3 +124,14 @@ void test_cas_deduplication() {
     assert_true(hashes.size() == 1, "CAS deduplication failed, hashes size != 1");
 }
 
+int main() {
+    std::cout << "Running CAS tests..." << std::endl;
+
+    test_cas_basic();
+    test_cas_hash_computation();
+    test_cas_store_retrieve();
+    test_cas_deduplication();
+
+    std::cout << "CAS tests passed." << std::endl;
+    return EXIT_SUCCESS;
+}

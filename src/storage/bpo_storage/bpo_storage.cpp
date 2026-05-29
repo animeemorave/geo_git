@@ -27,7 +27,8 @@ BPO::BPO(const bsoncxx::document::view& doc) {
     }
 
     if (doc["geometry"]) {
-        geometry_ = std::make_unique<bsoncxx::document::value>(doc["geometry"].get_document().value);
+        geometry_ =
+            std::make_unique<bsoncxx::document::value>(doc["geometry"].get_document().value);
         geometry_type_ = parse_geometry_type(geometry_->view());
     } else {
         bsoncxx::builder::stream::document empty_doc;
@@ -35,9 +36,10 @@ BPO::BPO(const bsoncxx::document::view& doc) {
         geometry_ = std::make_unique<bsoncxx::document::value>(empty_doc.view());
         geometry_type_ = GeometryType::Unknown;
     }
-    
+
     if (doc["attributes"]) {
-        attributes_ = std::make_unique<bsoncxx::document::value>(doc["attributes"].get_document().value);
+        attributes_ =
+            std::make_unique<bsoncxx::document::value>(doc["attributes"].get_document().value);
     } else {
         bsoncxx::builder::stream::document empty_doc;
         empty_doc << bsoncxx::builder::stream::finalize;
@@ -45,8 +47,10 @@ BPO::BPO(const bsoncxx::document::view& doc) {
     }
 }
 
-BPO::BPO(const std::string& hash, const bsoncxx::document::view& geometry, const bsoncxx::document::view& attributes)
-    : hash_(hash), geometry_(std::make_unique<bsoncxx::document::value>(geometry)), attributes_(std::make_unique<bsoncxx::document::value>(attributes)) {
+BPO::BPO(const std::string& hash, const bsoncxx::document::view& geometry,
+         const bsoncxx::document::view& attributes)
+    : hash_(hash), geometry_(std::make_unique<bsoncxx::document::value>(geometry)),
+      attributes_(std::make_unique<bsoncxx::document::value>(attributes)) {
     geometry_type_ = parse_geometry_type(geometry);
 }
 
@@ -89,11 +93,10 @@ void BPO::set_object_id(const std::string& object_id) {
 
 bsoncxx::document::value BPO::to_bson() const {
     bsoncxx::builder::stream::document builder;
-    builder << "hash" << hash_
-            << "geometry" << bsoncxx::types::b_document{*geometry_}
-            << "attributes" << bsoncxx::types::b_document{*attributes_}
-            << "created_at" << bsoncxx::types::b_date{std::chrono::system_clock::now()};
-    
+    builder << "hash" << hash_ << "geometry" << bsoncxx::types::b_document{*geometry_}
+            << "attributes" << bsoncxx::types::b_document{*attributes_} << "created_at"
+            << bsoncxx::types::b_date{std::chrono::system_clock::now()};
+
     return builder << bsoncxx::builder::stream::finalize;
 }
 
@@ -108,17 +111,24 @@ GeometryType BPO::parse_geometry_type(const bsoncxx::document::view& geometry) {
     if (!geometry["type"]) {
         return GeometryType::Unknown;
     }
-    
+
     std::string type = std::string(geometry["type"].get_string().value);
-    
-    if (type == "Point") return GeometryType::Point;
-    if (type == "LineString") return GeometryType::LineString;
-    if (type == "Polygon") return GeometryType::Polygon;
-    if (type == "MultiPoint") return GeometryType::MultiPoint;
-    if (type == "MultiLineString") return GeometryType::MultiLineString;
-    if (type == "MultiPolygon") return GeometryType::MultiPolygon;
-    if (type == "GeometryCollection") return GeometryType::GeometryCollection;
-    
+
+    if (type == "Point")
+        return GeometryType::Point;
+    if (type == "LineString")
+        return GeometryType::LineString;
+    if (type == "Polygon")
+        return GeometryType::Polygon;
+    if (type == "MultiPoint")
+        return GeometryType::MultiPoint;
+    if (type == "MultiLineString")
+        return GeometryType::MultiLineString;
+    if (type == "MultiPolygon")
+        return GeometryType::MultiPolygon;
+    if (type == "GeometryCollection")
+        return GeometryType::GeometryCollection;
+
     return GeometryType::Unknown;
 }
 
@@ -130,12 +140,12 @@ bool BPO::validate_point(const bsoncxx::document::view& geometry) const {
     if (!geometry["type"] || !geometry["coordinates"]) {
         return false;
     }
-    
+
     std::string type = std::string(geometry["type"].get_string().value);
     if (type != "Point") {
         return false;
     }
-    
+
     auto coordinates = geometry["coordinates"].get_array().value;
     return GeoJSONValidator::validate_point_coordinates(coordinates);
 }
@@ -144,12 +154,12 @@ bool BPO::validate_linestring(const bsoncxx::document::view& geometry) const {
     if (!geometry["type"] || !geometry["coordinates"]) {
         return false;
     }
-    
+
     std::string type = std::string(geometry["type"].get_string().value);
     if (type != "LineString") {
         return false;
     }
-    
+
     auto coordinates = geometry["coordinates"].get_array().value;
     return GeoJSONValidator::validate_linestring_coordinates(coordinates);
 }
@@ -158,12 +168,12 @@ bool BPO::validate_polygon(const bsoncxx::document::view& geometry) const {
     if (!geometry["type"] || !geometry["coordinates"]) {
         return false;
     }
-    
+
     std::string type = std::string(geometry["type"].get_string().value);
     if (type != "Polygon") {
         return false;
     }
-    
+
     auto coordinates = geometry["coordinates"].get_array().value;
     return GeoJSONValidator::validate_polygon_coordinates(coordinates);
 }
@@ -172,10 +182,10 @@ bool GeoJSONValidator::validate(const bsoncxx::document::view& geometry) {
     if (!geometry["type"] || !geometry["coordinates"]) {
         return false;
     }
-    
+
     std::string type = std::string(geometry["type"].get_string().value);
     auto coordinates = geometry["coordinates"].get_array().value;
-    
+
     if (type == "Point") {
         return validate_point_coordinates(coordinates);
     } else if (type == "LineString") {
@@ -183,7 +193,7 @@ bool GeoJSONValidator::validate(const bsoncxx::document::view& geometry) {
     } else if (type == "Polygon") {
         return validate_polygon_coordinates(coordinates);
     }
-    
+
     return false;
 }
 
@@ -191,17 +201,24 @@ GeometryType GeoJSONValidator::get_type(const bsoncxx::document::view& geometry)
     if (!geometry["type"]) {
         return GeometryType::Unknown;
     }
-    
+
     std::string type = std::string(geometry["type"].get_string().value);
-    
-    if (type == "Point") return GeometryType::Point;
-    if (type == "LineString") return GeometryType::LineString;
-    if (type == "Polygon") return GeometryType::Polygon;
-    if (type == "MultiPoint") return GeometryType::MultiPoint;
-    if (type == "MultiLineString") return GeometryType::MultiLineString;
-    if (type == "MultiPolygon") return GeometryType::MultiPolygon;
-    if (type == "GeometryCollection") return GeometryType::GeometryCollection;
-    
+
+    if (type == "Point")
+        return GeometryType::Point;
+    if (type == "LineString")
+        return GeometryType::LineString;
+    if (type == "Polygon")
+        return GeometryType::Polygon;
+    if (type == "MultiPoint")
+        return GeometryType::MultiPoint;
+    if (type == "MultiLineString")
+        return GeometryType::MultiLineString;
+    if (type == "MultiPolygon")
+        return GeometryType::MultiPolygon;
+    if (type == "GeometryCollection")
+        return GeometryType::GeometryCollection;
+
     return GeometryType::Unknown;
 }
 
@@ -209,10 +226,10 @@ bool GeoJSONValidator::validate_coordinates(const bsoncxx::document::view& geome
     if (!geometry["coordinates"]) {
         return false;
     }
-    
+
     auto coordinates = geometry["coordinates"].get_array().value;
     std::string type = std::string(geometry["type"].get_string().value);
-    
+
     if (type == "Point") {
         return validate_point_coordinates(coordinates);
     } else if (type == "LineString") {
@@ -220,7 +237,7 @@ bool GeoJSONValidator::validate_coordinates(const bsoncxx::document::view& geome
     } else if (type == "Polygon") {
         return validate_polygon_coordinates(coordinates);
     }
-    
+
     return false;
 }
 
@@ -228,7 +245,7 @@ bool GeoJSONValidator::validate_point_coordinates(const bsoncxx::array::view& co
     if (coordinates.length() < 2) {
         return false;
     }
-    
+
     auto it = coordinates.begin();
     if (it == coordinates.end() || (*it).type() != bsoncxx::type::k_double) {
         return false;
@@ -237,10 +254,10 @@ bool GeoJSONValidator::validate_point_coordinates(const bsoncxx::array::view& co
     if (it == coordinates.end() || (*it).type() != bsoncxx::type::k_double) {
         return false;
     }
-    
+
     double lon = (*coordinates.begin()).get_double().value;
     double lat = (*(++coordinates.begin())).get_double().value;
-    
+
     return lon >= -180.0 && lon <= 180.0 && lat >= -90.0 && lat <= 90.0;
 }
 
@@ -248,7 +265,7 @@ bool GeoJSONValidator::validate_linestring_coordinates(const bsoncxx::array::vie
     if (coordinates.length() < 2) {
         return false;
     }
-    
+
     for (auto&& point : coordinates) {
         if (point.type() != bsoncxx::type::k_array) {
             return false;
@@ -258,7 +275,7 @@ bool GeoJSONValidator::validate_linestring_coordinates(const bsoncxx::array::vie
             return false;
         }
     }
-    
+
     return true;
 }
 
@@ -266,7 +283,7 @@ bool GeoJSONValidator::validate_polygon_coordinates(const bsoncxx::array::view& 
     if (coordinates.length() == 0) {
         return false;
     }
-    
+
     for (auto&& ring : coordinates) {
         if (ring.type() != bsoncxx::type::k_array) {
             return false;
@@ -275,7 +292,7 @@ bool GeoJSONValidator::validate_polygon_coordinates(const bsoncxx::array::view& 
         if (ring_array.length() < 4) {
             return false;
         }
-        
+
         for (auto&& point : ring_array) {
             if (point.type() != bsoncxx::type::k_array) {
                 return false;
@@ -286,11 +303,9 @@ bool GeoJSONValidator::validate_polygon_coordinates(const bsoncxx::array::view& 
             }
         }
     }
-    
+
     return true;
 }
 
-
-
-}
-}
+} // namespace storage
+} // namespace geoversion
