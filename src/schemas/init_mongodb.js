@@ -89,13 +89,33 @@ db.createCollection('situation_versions', {
                 created_at: {
                     bsonType: 'date',
                     description: 'Creation timestamp'
+                }
+            }
+        }
+    }
+});
+
+db.createCollection('version_objects', {
+    validator: {
+        $jsonSchema: {
+            bsonType: 'object',
+            required: ['version_id', 'object_id', 'bpo_hash'],
+            properties: {
+                version_id: {
+                    bsonType: 'string',
+                    description: 'Reference to version'
                 },
-                bpo_refs: {
-                    bsonType: 'array',
-                    items: {
-                        bsonType: 'string'
-                    },
-                    description: 'Array of BPO hashes in this version'
+                object_id: {
+                    bsonType: 'string',
+                    description: 'Stable cross-version object identifier'
+                },
+                bpo_hash: {
+                    bsonType: 'string',
+                    description: 'Reference to BPO content in CAS'
+                },
+                created_at: {
+                    bsonType: 'date',
+                    description: 'Creation timestamp'
                 }
             }
         }
@@ -181,6 +201,17 @@ db.situation_versions.createIndex(
 db.situation_versions.createIndex(
     { 'situation_id': 1, 'created_at': -1 },
     { name: 'situation_versions_lookup_idx' }
+);
+
+// Indexes for version objects
+db.version_objects.createIndex(
+    { 'version_id': 1, 'object_id': 1 },
+    { name: 'version_objects_unique_idx', unique: true }
+);
+
+db.version_objects.createIndex(
+    { 'version_id': 1, 'bpo_hash': 1 },
+    { name: 'version_objects_hash_idx' }
 );
 
 // Index for version deltas

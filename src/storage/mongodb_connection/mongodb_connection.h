@@ -35,6 +35,8 @@ public:
 
     mongocxx::collection get_situation_versions_collection();
 
+    mongocxx::collection get_version_objects_collection();
+
     mongocxx::collection get_version_deltas_collection();
 
     bool is_initialized();

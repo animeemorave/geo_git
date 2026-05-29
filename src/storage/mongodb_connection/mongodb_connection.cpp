@@ -49,6 +49,10 @@ mongocxx::collection MongoDBConnection::get_situation_versions_collection() {
     return database_.collection("situation_versions");
 }
 
+mongocxx::collection MongoDBConnection::get_version_objects_collection() {
+    return database_.collection("version_objects");
+}
+
 mongocxx::collection MongoDBConnection::get_version_deltas_collection() {
     return database_.collection("version_deltas");
 }
@@ -60,6 +64,7 @@ bool MongoDBConnection::is_initialized() {
             "bpo_cas",
             "situations",
             "situation_versions",
+            "version_objects",
             "version_deltas"
         };
 
@@ -189,8 +194,34 @@ void MongoDBConnection::create_geospatial_indexes() {
             lookup_index_options
         );
 
+        auto version_objects = get_version_objects_collection();
+
+        bsoncxx::builder::stream::document version_objects_unique_index;
+        version_objects_unique_index << "version_id" << 1
+                                     << "object_id" << 1;
+
+        mongocxx::options::index version_objects_unique_options;
+        version_objects_unique_options.name("version_objects_unique_idx").unique(true);
+
+        version_objects.create_index(
+            version_objects_unique_index.view(),
+            version_objects_unique_options
+        );
+
+        bsoncxx::builder::stream::document version_objects_hash_index;
+        version_objects_hash_index << "version_id" << 1
+                                   << "bpo_hash" << 1;
+
+        mongocxx::options::index version_objects_hash_options;
+        version_objects_hash_options.name("version_objects_hash_idx");
+
+        version_objects.create_index(
+            version_objects_hash_index.view(),
+            version_objects_hash_options
+        );
+
         auto version_deltas = get_version_deltas_collection();
-        
+
         bsoncxx::builder::stream::document delta_id_index;
         delta_id_index << "delta_id" << 1;
         

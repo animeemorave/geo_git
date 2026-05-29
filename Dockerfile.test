@@ -45,4 +45,6 @@ RUN mkdir -p build && cd build && \
     cmake .. && \
     make
 
-CMD ["/app/build/test_runner"]
+WORKDIR /app/build
+
+CMD ["ctest", "--output-on-failure"]
