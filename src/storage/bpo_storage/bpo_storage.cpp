@@ -21,7 +21,11 @@ BPO::BPO(const bsoncxx::document::view& doc) {
     if (doc["hash"]) {
         hash_ = std::string(doc["hash"].get_string().value);
     }
-    
+
+    if (doc["object_id"]) {
+        object_id_ = std::string(doc["object_id"].get_string().value);
+    }
+
     if (doc["geometry"]) {
         geometry_ = std::make_unique<bsoncxx::document::value>(doc["geometry"].get_document().value);
         geometry_type_ = parse_geometry_type(geometry_->view());
@@ -62,6 +66,10 @@ GeometryType BPO::get_geometry_type() const {
     return geometry_type_;
 }
 
+std::optional<std::string> BPO::get_object_id() const {
+    return object_id_;
+}
+
 void BPO::set_hash(const std::string& hash) {
     hash_ = hash;
 }
@@ -73,6 +81,10 @@ void BPO::set_geometry(const bsoncxx::document::view& geometry) {
 
 void BPO::set_attributes(const bsoncxx::document::view& attributes) {
     attributes_ = std::make_unique<bsoncxx::document::value>(attributes);
+}
+
+void BPO::set_object_id(const std::string& object_id) {
+    object_id_ = object_id;
 }
 
 bsoncxx::document::value BPO::to_bson() const {

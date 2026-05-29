@@ -53,6 +53,10 @@ mongocxx::collection MongoDBConnection::get_version_objects_collection() {
     return database_.collection("version_objects");
 }
 
+mongocxx::collection MongoDBConnection::get_branches_collection() {
+    return database_.collection("branches");
+}
+
 mongocxx::collection MongoDBConnection::get_version_deltas_collection() {
     return database_.collection("version_deltas");
 }
@@ -65,6 +69,7 @@ bool MongoDBConnection::is_initialized() {
             "situations",
             "situation_versions",
             "version_objects",
+            "branches",
             "version_deltas"
         };
 

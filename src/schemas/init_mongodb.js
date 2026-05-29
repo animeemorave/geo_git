@@ -103,7 +103,7 @@ db.createCollection('version_objects', {
             properties: {
                 version_id: {
                     bsonType: 'string',
-                    description: 'Reference to version'
+                    description: 'Reference to situation_versions'
                 },
                 object_id: {
                     bsonType: 'string',
@@ -111,11 +111,46 @@ db.createCollection('version_objects', {
                 },
                 bpo_hash: {
                     bsonType: 'string',
-                    description: 'Reference to BPO content in CAS'
+                    description: 'Reference to bpo_cas'
                 },
                 created_at: {
                     bsonType: 'date',
                     description: 'Creation timestamp'
+                }
+            }
+        }
+    }
+});
+
+db.createCollection('branches', {
+    validator: {
+        $jsonSchema: {
+            bsonType: 'object',
+            required: ['branch_id', 'situation_id', 'name', 'created_at'],
+            properties: {
+                branch_id: {
+                    bsonType: 'string',
+                    description: 'Unique branch identifier'
+                },
+                situation_id: {
+                    bsonType: 'string',
+                    description: 'Reference to situation'
+                },
+                name: {
+                    bsonType: 'string',
+                    description: 'Branch name (e.g. "main", "feature/roads")'
+                },
+                head_version_id: {
+                    bsonType: 'string',
+                    description: 'Current HEAD version (absent for empty branch)'
+                },
+                created_at: {
+                    bsonType: 'date',
+                    description: 'Creation timestamp'
+                },
+                updated_at: {
+                    bsonType: 'date',
+                    description: 'Last HEAD advance timestamp'
                 }
             }
         }
