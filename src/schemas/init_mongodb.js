@@ -175,30 +175,50 @@ db.createCollection('version_deltas', {
                     bsonType: 'string',
                     description: 'Target version ID'
                 },
-                added_bpos: {
+                added: {
                     bsonType: 'array',
                     items: {
                         bsonType: 'string'
                     },
-                    description: 'Array of added BPO hashes'
+                    description: 'object_ids of added objects'
                 },
-                removed_bpos: {
+                removed: {
                     bsonType: 'array',
                     items: {
                         bsonType: 'string'
                     },
-                    description: 'Array of removed BPO hashes'
+                    description: 'object_ids of removed objects'
                 },
-                modified_bpos: {
+                modified: {
+                    bsonType: 'array',
+                    items: {
+                        bsonType: 'string'
+                    },
+                    description: 'object_ids of modified objects (same object_id, different hash)'
+                },
+                unchanged: {
+                    bsonType: 'array',
+                    items: {
+                        bsonType: 'string'
+                    },
+                    description: 'object_ids of unchanged objects'
+                },
+                likely_modified: {
                     bsonType: 'array',
                     items: {
                         bsonType: 'object',
                         properties: {
-                            old_hash: { bsonType: 'string' },
-                            new_hash: { bsonType: 'string' }
+                            removed_hash: { bsonType: 'string' },
+                            added_hash: { bsonType: 'string' },
+                            confidence: { bsonType: 'double' },
+                            distance_m: { bsonType: 'double' }
                         }
                     },
-                    description: 'Array of modified BPOs'
+                    description: 'Level 2 entity-resolution heuristics (similarity pairs)'
+                },
+                created_at: {
+                    bsonType: 'date',
+                    description: 'Creation timestamp'
                 }
             }
         }
