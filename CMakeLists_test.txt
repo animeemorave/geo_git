@@ -17,6 +17,8 @@ add_library(geoversion_core STATIC
     src/storage/bpo_storage/bpo_storage.cpp
     src/storage/cas/cas.cpp
     src/storage/situation_storage/situation_storage.cpp
+    src/storage/version_storage/version_storage.cpp
+    src/storage/delta_storage/delta_storage.cpp
     src/utils/logger/logger.cpp
     src/utils/uuid/uuid.cpp
 )
@@ -35,6 +37,8 @@ enable_testing()
 set(TEST_MODULES
     test_cas
     test_situation_storage
+    test_version_storage
+    test_delta_storage
 )
 
 foreach(test_module ${TEST_MODULES})

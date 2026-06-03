@@ -18,6 +18,8 @@ set(SOURCES
     src/storage/bpo_storage/bpo_storage.cpp
     src/storage/cas/cas.cpp
     src/storage/situation_storage/situation_storage.cpp
+    src/storage/version_storage/version_storage.cpp
+    src/storage/delta_storage/delta_storage.cpp
     src/utils/logger/logger.cpp
     src/utils/uuid/uuid.cpp
 )
