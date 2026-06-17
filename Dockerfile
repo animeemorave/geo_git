@@ -14,6 +14,13 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN for i in 1 2 3 4 5 6; do \
+        apt-get -o Acquire::Retries=8 update; \
+        apt-get install -y libboost-dev && break; \
+        echo "apt attempt $i failed, retrying after backoff..."; \
+        sleep 20; \
+    done && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /tmp
 
 RUN wget https://github.com/mongodb/mongo-c-driver/releases/download/1.24.4/mongo-c-driver-1.24.4.tar.gz && \

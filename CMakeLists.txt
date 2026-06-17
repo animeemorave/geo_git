@@ -9,8 +9,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(mongocxx REQUIRED PATHS /usr/local/lib/cmake)
 find_package(bsoncxx REQUIRED PATHS /usr/local/lib/cmake)
 find_package(OpenSSL REQUIRED)
+find_package(Boost REQUIRED)
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
+include_directories(${Boost_INCLUDE_DIRS})
 
 set(SOURCES
     src/main.cpp
@@ -23,6 +25,12 @@ set(SOURCES
     src/storage/delta_storage/delta_storage.cpp
     src/diff/diff_engine.cpp
     src/diff/status_engine.cpp
+    src/diff/geometry_utils.cpp
+    src/diff/entity_matcher.cpp
+    src/diff/matchers/small_diff_matcher.cpp
+    src/diff/matchers/large_diff_matcher.cpp
+    src/diff/matchers/adaptive_matcher.cpp
+    src/merge/merge_engine.cpp
     src/utils/logger/logger.cpp
     src/utils/uuid/uuid.cpp
 )

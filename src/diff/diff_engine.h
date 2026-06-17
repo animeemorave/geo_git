@@ -9,9 +9,12 @@
 namespace geoversion {
 namespace storage {
 class DeltaStorage;
-}
+class CAS;
+} // namespace storage
 
 namespace diff {
+
+class EntityMatcher;
 
 DiffResult diff_object_maps(const std::unordered_map<std::string, std::string>& from,
                             const std::unordered_map<std::string, std::string>& to);
@@ -21,14 +24,19 @@ public:
     explicit DiffEngine(storage::VersionStorage& version_storage);
     DiffEngine(storage::VersionStorage& version_storage, storage::DeltaStorage& delta_storage);
 
+    void set_entity_matcher(storage::CAS& cas, const EntityMatcher& matcher);
+
     DiffResult compute(const std::string& from_version_id, const std::string& to_version_id);
 
 private:
     storage::VersionStorage& version_storage_;
     storage::DeltaStorage* delta_storage_ = nullptr;
+    storage::CAS* cas_ = nullptr;
+    const EntityMatcher* matcher_ = nullptr;
 
-    DiffResult compute_level1(const std::string& from_version_id,
-                              const std::string& to_version_id) const;
+    void compute_level2(const std::unordered_map<std::string, std::string>& from_map,
+                        const std::unordered_map<std::string, std::string>& to_map,
+                        DiffResult& result) const;
 };
 
 } // namespace diff
