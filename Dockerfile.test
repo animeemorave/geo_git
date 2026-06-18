@@ -39,12 +39,9 @@ RUN apt-get update && apt-get install -y \
     clang-tidy \
     && rm -rf /var/lib/apt/lists/*
 
-RUN for i in 1 2 3 4 5 6; do \
-        apt-get -o Acquire::Retries=8 update; \
-        apt-get install -y libboost-dev && break; \
-        echo "apt attempt $i failed, retrying after backoff..."; \
-        sleep 20; \
-    done && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    libboost-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

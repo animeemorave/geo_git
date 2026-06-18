@@ -1,0 +1,253 @@
+syntax = "proto3";
+
+package geogit;
+
+import "google/protobuf/empty.proto";
+
+service GeoGit {
+    rpc CreateSituation(CreateSituationRequest) returns (SituationResponse);
+    rpc GetSituation(GetSituationRequest) returns (SituationResponse);
+    rpc ListSituations(ListSituationsRequest) returns (ListSituationsResponse);
+    rpc UpdateSituation(UpdateSituationRequest) returns (SituationResponse);
+    rpc DeleteSituation(DeleteSituationRequest) returns (google.protobuf.Empty);
+
+    rpc CreateBranch(CreateBranchRequest) returns (BranchResponse);
+    rpc GetBranch(GetBranchRequest) returns (BranchResponse);
+    rpc GetBranchByName(GetBranchByNameRequest) returns (BranchResponse);
+    rpc ListBranches(ListBranchesRequest) returns (ListBranchesResponse);
+    rpc AdvanceBranch(AdvanceBranchRequest) returns (BranchResponse);
+    rpc DeleteBranch(DeleteBranchRequest) returns (google.protobuf.Empty);
+
+    rpc CreateVersion(CreateVersionRequest) returns (VersionResponse);
+    rpc GetVersion(GetVersionRequest) returns (VersionResponse);
+    rpc ListVersions(ListVersionsRequest) returns (ListVersionsResponse);
+    rpc Checkout(CheckoutRequest) returns (stream BPOResponse);
+
+    rpc StoreBPO(StoreBPORequest) returns (StoreBPOResponse);
+    rpc GetBPO(GetBPORequest) returns (BPOResponse);
+    rpc FindInBBox(FindInBBoxRequest) returns (stream BPOResponse);
+
+    rpc GetStatus(GetStatusRequest) returns (DiffResponse);
+    rpc ComputeDiff(ComputeDiffRequest) returns (DiffResponse);
+    rpc GetDelta(GetDeltaRequest) returns (DiffResponse);
+
+    rpc Merge(MergeRequest) returns (MergeResponse);
+}
+
+message Situation {
+    string situation_id = 1;
+    string name = 2;
+    string description = 3;
+    int64 created_at = 4;
+    int64 updated_at = 5;
+}
+
+message CreateSituationRequest {
+    string name = 1;
+    string description = 2;
+}
+
+message GetSituationRequest {
+    string situation_id = 1;
+}
+
+message ListSituationsRequest {}
+
+message ListSituationsResponse {
+    repeated Situation situations = 1;
+}
+
+message UpdateSituationRequest {
+    string situation_id = 1;
+    string name = 2;
+    string description = 3;
+}
+
+message DeleteSituationRequest {
+    string situation_id = 1;
+}
+
+message SituationResponse {
+    Situation situation = 1;
+}
+
+message Branch {
+    string branch_id = 1;
+    string situation_id = 2;
+    string name = 3;
+    string head_version_id = 4;
+    int64 created_at = 5;
+    int64 updated_at = 6;
+}
+
+message CreateBranchRequest {
+    string situation_id = 1;
+    string name = 2;
+    string head_version_id = 3;
+}
+
+message GetBranchRequest {
+    string branch_id = 1;
+}
+
+message GetBranchByNameRequest {
+    string situation_id = 1;
+    string name = 2;
+}
+
+message ListBranchesRequest {
+    string situation_id = 1;
+}
+
+message ListBranchesResponse {
+    repeated Branch branches = 1;
+}
+
+message AdvanceBranchRequest {
+    string branch_id = 1;
+    string new_version_id = 2;
+}
+
+message DeleteBranchRequest {
+    string branch_id = 1;
+}
+
+message BranchResponse {
+    Branch branch = 1;
+}
+
+message VersionMeta {
+    string version_id = 1;
+    string situation_id = 2;
+    repeated string parent_version_ids = 3;
+    string message = 4;
+    string author = 5;
+    int64 created_at = 6;
+}
+
+message Version {
+    VersionMeta meta = 1;
+    map<string, string> objects = 2;
+}
+
+message CreateVersionRequest {
+    string situation_id = 1;
+    map<string, string> objects = 2;
+    repeated string parent_version_ids = 3;
+    string message = 4;
+    string author = 5;
+}
+
+message GetVersionRequest {
+    string version_id = 1;
+}
+
+message ListVersionsRequest {
+    string situation_id = 1;
+}
+
+message ListVersionsResponse {
+    repeated VersionMeta versions = 1;
+}
+
+message VersionResponse {
+    Version version = 1;
+}
+
+message BPO {
+    string hash = 1;
+    string object_id = 2;
+    string geometry_json = 3;
+    string attributes_json = 4;
+}
+
+message StoreBPORequest {
+    string geometry_json = 1;
+    string attributes_json = 2;
+}
+
+message StoreBPOResponse {
+    string hash = 1;
+}
+
+message GetBPORequest {
+    string hash = 1;
+}
+
+message BPOResponse {
+    BPO bpo = 1;
+}
+
+message CheckoutRequest {
+    string version_id = 1;
+}
+
+message FindInBBoxRequest {
+    double min_lon = 1;
+    double min_lat = 2;
+    double max_lon = 3;
+    double max_lat = 4;
+}
+
+message SimilarityPair {
+    string removed_hash = 1;
+    string added_hash = 2;
+    double confidence = 3;
+    double distance_m = 4;
+}
+
+message DiffResponse {
+    repeated string added = 1;
+    repeated string removed = 2;
+    repeated string modified = 3;
+    repeated string unchanged = 4;
+    repeated SimilarityPair likely_modified = 5;
+}
+
+message ComputeDiffRequest {
+    string from_version_id = 1;
+    string to_version_id = 2;
+    bool entity_resolution = 3;
+}
+
+message GetStatusRequest {
+    string branch_id = 1;
+    map<string, string> proposed_objects = 2;
+}
+
+message GetDeltaRequest {
+    string from_version_id = 1;
+    string to_version_id = 2;
+}
+
+enum ConflictType {
+    BOTH_MODIFIED = 0;
+    MODIFIED_DELETED = 1;
+    BOTH_ADDED = 2;
+}
+
+enum MergeStrategy {
+    MANUAL = 0;
+    OURS = 1;
+    THEIRS = 2;
+}
+
+message Conflict {
+    string object_id = 1;
+    string base_hash = 2;
+    string ours_hash = 3;
+    string theirs_hash = 4;
+    ConflictType type = 5;
+}
+
+message MergeRequest {
+    string base_version_id = 1;
+    string ours_version_id = 2;
+    string theirs_version_id = 3;
+    MergeStrategy strategy = 4;
+}
+
+message MergeResponse {
+    map<string, string> merged = 1;
+    repeated Conflict conflicts = 2;
+}

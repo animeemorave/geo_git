@@ -31,6 +31,33 @@ services:
     networks:
       - geoversion_network
 
+  grpc:
+    build:
+      context: .
+      dockerfile: Dockerfile.grpc
+    container_name: geoversion_grpc
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    ports:
+      - "50051:50051"
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017
+      GRPC_PORT: "50051"
+    networks:
+      - geoversion_network
+
+  cli:
+    build:
+      context: .
+      dockerfile: Dockerfile.cli
+    image: geo_git-cli
+    profiles: ["tools"]
+    environment:
+      GEOGIT_SERVER: geoversion_grpc:50051
+    networks:
+      - geoversion_network
+
   tests:
     build:
       context: .

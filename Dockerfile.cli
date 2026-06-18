@@ -1,0 +1,24 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    pkg-config \
+    libprotobuf-dev \
+    protobuf-compiler \
+    libgrpc++-dev \
+    protobuf-compiler-grpc \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY grpc/proto ./grpc/proto
+COPY cli ./cli
+
+RUN mkdir -p cli/build && cd cli/build && \
+    cmake .. && \
+    make -j$(nproc)
+
+ENTRYPOINT ["/app/cli/build/geogit"]
