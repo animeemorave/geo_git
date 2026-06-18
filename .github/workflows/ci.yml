@@ -33,9 +33,9 @@ jobs:
 
       - name: clang-format (check)
         run: |
-          docker run --rm -w /app geo_git-tests:latest bash -c '
+          docker run --rm -v "$PWD:/work" -w /work geo_git-tests:latest bash -c '
             set -e
-            files=$(find src tests -type f \( -name "*.cpp" -o -name "*.h" \))
+            files=$(find src tests grpc/src grpc/tests cli/src -type f \( -name "*.cpp" -o -name "*.h" \))
             clang-format --dry-run --Werror $files
           '
 
@@ -47,6 +47,28 @@ jobs:
             clang-tidy -p build --warnings-as-errors="*" $files
           '
 
+      # Builds the gRPC server image (server + integration test binary).
+      - name: Build gRPC image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.grpc
+          load: true
+          tags: geo_git-grpc:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Builds the CLI image (compile check; lightweight, no mongo drivers).
+      - name: Build CLI image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.cli
+          load: true
+          tags: geo_git-cli:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Start MongoDB
         run: |
           docker compose up -d mongodb
@@ -55,12 +77,20 @@ jobs:
             sleep 2
           done
 
-      - name: Run tests (ctest)
+      - name: Run engine tests (ctest)
         run: |
           docker run --rm \
             --network geo_git_geoversion_network \
             -e MONGODB_URI=mongodb://mongodb:27017 \
             geo_git-tests:latest ctest --output-on-failure
+
+      - name: Run gRPC integration test (ctest)
+        run: |
+          docker run --rm \
+            --network geo_git_geoversion_network \
+            -e MONGODB_URI=mongodb://mongodb:27017 \
+            -w /app/grpc/build \
+            geo_git-grpc:latest ctest --output-on-failure
 
       - name: Cleanup
         if: always()
