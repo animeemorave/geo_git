@@ -86,10 +86,5 @@ docker compose build tests
 docker compose run --rm tests
 ```
 
-### Нагрузочное тестирование
-
-Генератор данных и раннер для прогона через gRPC — в [scripts/](scripts) (см.
-[scripts/README.md](scripts/README.md)).
-
 ### Автор: 
 - Никоненко Егор
