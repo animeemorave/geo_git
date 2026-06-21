@@ -58,12 +58,16 @@ mongocxx::collection MongoDBConnection::get_version_deltas_collection() {
     return database_.collection("version_deltas");
 }
 
+mongocxx::collection MongoDBConnection::get_delta_items_collection() {
+    return database_.collection("delta_items");
+}
+
 bool MongoDBConnection::is_initialized() {
     try {
         auto collections = database_.list_collection_names();
         std::vector<std::string> required_collections = {
-            "bpo_cas",         "situations", "situation_versions",
-            "version_objects", "branches",   "version_deltas"};
+            "bpo_cas",  "situations",     "situation_versions", "version_objects",
+            "branches", "version_deltas", "delta_items"};
 
         for (const auto& required : required_collections) {
             bool found = false;
@@ -234,6 +238,16 @@ void MongoDBConnection::create_geospatial_indexes() {
         delta_lookup_options.name("delta_lookup_idx");
 
         version_deltas.create_index(delta_lookup_index.view(), delta_lookup_options);
+
+        auto delta_items = get_delta_items_collection();
+
+        bsoncxx::builder::stream::document delta_items_index;
+        delta_items_index << "delta_id" << 1 << "kind" << 1;
+
+        mongocxx::options::index delta_items_options;
+        delta_items_options.name("delta_items_lookup_idx");
+
+        delta_items.create_index(delta_items_index.view(), delta_items_options);
 
         std::cout << "Geospatial indexes created successfully." << std::endl;
     } catch (const std::exception& e) {

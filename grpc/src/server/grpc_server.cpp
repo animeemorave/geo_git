@@ -21,6 +21,8 @@ void GrpcServer::run() {
     GeoGitServiceImpl service(connection);
 
     grpc::ServerBuilder builder;
+    builder.SetMaxReceiveMessageSize(-1);
+    builder.SetMaxSendMessageSize(-1);
     builder.AddListeningPort(listen_address_, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);
 

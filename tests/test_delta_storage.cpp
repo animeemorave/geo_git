@@ -29,6 +29,7 @@ static std::string get_mongo_uri() {
 static void clear_deltas(MongoDBConnection& conn) {
     bsoncxx::builder::stream::document empty_filter;
     conn.get_version_deltas_collection().delete_many(empty_filter.view());
+    conn.get_delta_items_collection().delete_many(empty_filter.view());
 }
 
 static diff::DiffResult sample_diff() {

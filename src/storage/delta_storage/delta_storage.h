@@ -25,7 +25,7 @@ public:
 private:
     MongoDBConnection& connection_;
 
-    diff::DiffResult from_document(const bsoncxx::document::view& doc) const;
+    diff::DiffResult load_items(const std::string& delta_id) const;
 };
 
 } // namespace storage

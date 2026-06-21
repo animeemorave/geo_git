@@ -5,6 +5,7 @@
 #include <bsoncxx/document/value.hpp>
 #include <string>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 namespace geoversion {
@@ -26,7 +27,10 @@ public:
     bool store(const std::string& hash, const bsoncxx::document::view& geometry,
                const bsoncxx::document::view& attributes);
 
+    size_t store_many(const std::vector<BPO>& bpos);
+
     std::unique_ptr<BPO> retrieve(const std::string& hash);
+    std::unordered_map<std::string, BPO> retrieve_many(const std::vector<std::string>& hashes);
     bool exists(const std::string& hash);
 
     bool remove(const std::string& hash);

@@ -6,12 +6,18 @@
 #include <bsoncxx/builder/basic/kvp.hpp>
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/types.hpp>
+#include <mongocxx/model/update_one.hpp>
+#include <mongocxx/options/bulk_write.hpp>
 #include <openssl/evp.h>
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <algorithm>
 #include <chrono>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace geoversion {
 namespace storage {
@@ -57,6 +63,105 @@ bool CAS::store(const std::string& hash, const bsoncxx::document::view& geometry
         std::cerr << "Error storing in CAS: " << e.what() << std::endl;
         return false;
     }
+}
+
+size_t CAS::store_many(const std::vector<BPO>& bpos) {
+    if (bpos.empty()) {
+        return 0;
+    }
+
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    const size_t batch_size = 1000;
+    const auto now = bsoncxx::types::b_date{std::chrono::system_clock::now()};
+
+    mongocxx::options::bulk_write bulk_opts;
+    bulk_opts.ordered(false);
+
+    size_t upserted = 0;
+    std::unordered_set<std::string> seen;
+    std::vector<mongocxx::model::write> ops;
+    ops.reserve(batch_size);
+
+    auto flush = [&]() {
+        if (ops.empty()) {
+            return;
+        }
+        try {
+            auto result = collection_.bulk_write(ops, bulk_opts);
+            if (result) {
+                upserted += result->upserted_count();
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error in CAS bulk store: " << e.what() << std::endl;
+        }
+        ops.clear();
+    };
+
+    for (const auto& bpo : bpos) {
+        std::string hash = bpo.get_hash();
+        if (hash.empty() || !seen.insert(hash).second) {
+            continue;
+        }
+
+        auto filter = make_document(kvp("hash", hash));
+        auto update = make_document(
+            kvp("$setOnInsert",
+                make_document(kvp("hash", hash),
+                              kvp("geometry", bsoncxx::types::b_document{bpo.get_geometry()}),
+                              kvp("attributes", bsoncxx::types::b_document{bpo.get_attributes()}),
+                              kvp("created_at", now))));
+
+        mongocxx::model::update_one op(std::move(filter), std::move(update));
+        op.upsert(true);
+        ops.emplace_back(std::move(op));
+
+        if (ops.size() >= batch_size) {
+            flush();
+        }
+    }
+    flush();
+
+    return upserted;
+}
+
+std::unordered_map<std::string, BPO> CAS::retrieve_many(const std::vector<std::string>& hashes) {
+    std::unordered_map<std::string, BPO> result;
+    if (hashes.empty()) {
+        return result;
+    }
+
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    const std::size_t batch_size = 50000;
+
+    try {
+        for (std::size_t offset = 0; offset < hashes.size(); offset += batch_size) {
+            std::size_t end = std::min(offset + batch_size, hashes.size());
+
+            bsoncxx::builder::basic::array hash_array;
+            for (std::size_t i = offset; i < end; ++i) {
+                hash_array.append(hashes[i]);
+            }
+
+            auto filter = make_document(kvp("hash", make_document(kvp("$in", hash_array))));
+            auto cursor = collection_.find(filter.view());
+
+            for (auto&& doc : cursor) {
+                if (!doc["hash"]) {
+                    continue;
+                }
+                std::string hash(doc["hash"].get_string().value);
+                result.emplace(std::move(hash), BPO(doc));
+            }
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error batch-retrieving from CAS: " << e.what() << std::endl;
+    }
+
+    return result;
 }
 
 std::unique_ptr<BPO> CAS::retrieve(const std::string& hash) {

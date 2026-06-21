@@ -39,6 +39,7 @@ void clear_collections(MongoDBConnection& conn) {
     conn.get_bpo_cas_collection().delete_many(empty.view());
     conn.get_branches_collection().delete_many(empty.view());
     conn.get_version_deltas_collection().delete_many(empty.view());
+    conn.get_delta_items_collection().delete_many(empty.view());
 }
 
 std::string point_geometry(double lon, double lat) {

@@ -19,30 +19,43 @@ namespace {
 std::vector<GeoCandidate> build_candidates(const std::vector<std::string>& object_ids,
                                            const std::unordered_map<std::string, std::string>& map,
                                            storage::CAS& cas) {
-    std::vector<GeoCandidate> candidates;
+    std::vector<std::string> hashes;
+    hashes.reserve(object_ids.size());
     for (const auto& object_id : object_ids) {
         auto it = map.find(object_id);
-        if (it == map.end()) {
+        if (it != map.end()) {
+            hashes.push_back(it->second);
+        }
+    }
+
+    auto bpos_by_hash = cas.retrieve_many(hashes);
+
+    std::vector<GeoCandidate> candidates;
+    candidates.reserve(object_ids.size());
+    for (const auto& object_id : object_ids) {
+        auto map_it = map.find(object_id);
+        if (map_it == map.end()) {
             continue;
         }
 
-        auto bpo = cas.retrieve(it->second);
-        if (!bpo) {
+        auto bpo_it = bpos_by_hash.find(map_it->second);
+        if (bpo_it == bpos_by_hash.end()) {
             continue;
         }
+        const storage::BPO& bpo = bpo_it->second;
 
         RepresentativePoint point =
-            representative_point(bpo->get_geometry(), bpo->get_geometry_type());
+            representative_point(bpo.get_geometry(), bpo.get_geometry_type());
         if (!point.valid) {
             continue;
         }
 
         GeoCandidate candidate;
         candidate.object_id = object_id;
-        candidate.hash = it->second;
+        candidate.hash = map_it->second;
         candidate.lon = point.lon;
         candidate.lat = point.lat;
-        candidate.type = bpo->get_geometry_type();
+        candidate.type = bpo.get_geometry_type();
         candidates.push_back(std::move(candidate));
     }
     return candidates;
@@ -93,7 +106,9 @@ void DiffEngine::set_entity_matcher(storage::CAS& cas, const EntityMatcher& matc
 
 DiffResult DiffEngine::compute(const std::string& from_version_id,
                                const std::string& to_version_id) {
-    if (delta_storage_) {
+    bool entity_resolution = matcher_ != nullptr && cas_ != nullptr;
+
+    if (delta_storage_ && !entity_resolution) {
         auto cached = delta_storage_->find(from_version_id, to_version_id);
         if (cached) {
             return *cached;
@@ -111,7 +126,7 @@ DiffResult DiffEngine::compute(const std::string& from_version_id,
 
     DiffResult result = diff_object_maps(from->objects, to->objects);
 
-    if (matcher_ != nullptr && cas_ != nullptr) {
+    if (entity_resolution) {
         compute_level2(from->objects, to->objects, result);
     }
 
