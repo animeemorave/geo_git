@@ -106,12 +106,12 @@ size_t CAS::store_many(const std::vector<BPO>& bpos) {
         }
 
         auto filter = make_document(kvp("hash", hash));
-        auto update = make_document(kvp(
-            "$setOnInsert",
-            make_document(kvp("hash", hash),
-                          kvp("geometry", bsoncxx::types::b_document{bpo.get_geometry()}),
-                          kvp("attributes", bsoncxx::types::b_document{bpo.get_attributes()}),
-                          kvp("created_at", now))));
+        auto update = make_document(
+            kvp("$setOnInsert",
+                make_document(kvp("hash", hash),
+                              kvp("geometry", bsoncxx::types::b_document{bpo.get_geometry()}),
+                              kvp("attributes", bsoncxx::types::b_document{bpo.get_attributes()}),
+                              kvp("created_at", now))));
 
         mongocxx::model::update_one op(std::move(filter), std::move(update));
         op.upsert(true);

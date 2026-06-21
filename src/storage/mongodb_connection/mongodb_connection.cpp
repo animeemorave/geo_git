@@ -66,8 +66,8 @@ bool MongoDBConnection::is_initialized() {
     try {
         auto collections = database_.list_collection_names();
         std::vector<std::string> required_collections = {
-            "bpo_cas",   "situations",      "situation_versions", "version_objects",
-            "branches",  "version_deltas",  "delta_items"};
+            "bpo_cas",  "situations",     "situation_versions", "version_objects",
+            "branches", "version_deltas", "delta_items"};
 
         for (const auto& required : required_collections) {
             bool found = false;

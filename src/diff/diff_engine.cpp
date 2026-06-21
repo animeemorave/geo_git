@@ -44,7 +44,8 @@ std::vector<GeoCandidate> build_candidates(const std::vector<std::string>& objec
         }
         const storage::BPO& bpo = bpo_it->second;
 
-        RepresentativePoint point = representative_point(bpo.get_geometry(), bpo.get_geometry_type());
+        RepresentativePoint point =
+            representative_point(bpo.get_geometry(), bpo.get_geometry_type());
         if (!point.valid) {
             continue;
         }

@@ -31,11 +31,12 @@ void flush_items(mongocxx::collection& items_coll, std::vector<bsoncxx::document
     batch.clear();
 }
 
-void append_plain_items(mongocxx::collection& items_coll, std::vector<bsoncxx::document::value>& batch,
-                        const std::string& delta_id, const char* kind,
-                        const std::vector<std::string>& values) {
+void append_plain_items(mongocxx::collection& items_coll,
+                        std::vector<bsoncxx::document::value>& batch, const std::string& delta_id,
+                        const char* kind, const std::vector<std::string>& values) {
     for (const auto& value : values) {
-        batch.push_back(make_document(kvp("delta_id", delta_id), kvp("kind", kind), kvp("value", value)));
+        batch.push_back(
+            make_document(kvp("delta_id", delta_id), kvp("kind", kind), kvp("value", value)));
         if (batch.size() >= kItemBatchSize) {
             flush_items(items_coll, batch);
         }
