@@ -35,6 +35,7 @@ static void clear_collections(MongoDBConnection& conn) {
     conn.get_situation_versions_collection().delete_many(empty_filter.view());
     conn.get_version_objects_collection().delete_many(empty_filter.view());
     conn.get_version_deltas_collection().delete_many(empty_filter.view());
+    conn.get_delta_items_collection().delete_many(empty_filter.view());
 }
 
 static std::string make_version(VersionStorage& storage, const std::string& situation_id,

@@ -39,6 +39,8 @@ public:
 
     mongocxx::collection get_version_deltas_collection();
 
+    mongocxx::collection get_delta_items_collection();
+
     bool is_initialized();
 
     bool initialize_database();

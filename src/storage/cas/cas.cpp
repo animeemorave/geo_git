@@ -12,7 +12,9 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <algorithm>
 #include <chrono>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -122,6 +124,44 @@ size_t CAS::store_many(const std::vector<BPO>& bpos) {
     flush();
 
     return upserted;
+}
+
+std::unordered_map<std::string, BPO> CAS::retrieve_many(const std::vector<std::string>& hashes) {
+    std::unordered_map<std::string, BPO> result;
+    if (hashes.empty()) {
+        return result;
+    }
+
+    using bsoncxx::builder::basic::kvp;
+    using bsoncxx::builder::basic::make_document;
+
+    const std::size_t batch_size = 50000;
+
+    try {
+        for (std::size_t offset = 0; offset < hashes.size(); offset += batch_size) {
+            std::size_t end = std::min(offset + batch_size, hashes.size());
+
+            bsoncxx::builder::basic::array hash_array;
+            for (std::size_t i = offset; i < end; ++i) {
+                hash_array.append(hashes[i]);
+            }
+
+            auto filter = make_document(kvp("hash", make_document(kvp("$in", hash_array))));
+            auto cursor = collection_.find(filter.view());
+
+            for (auto&& doc : cursor) {
+                if (!doc["hash"]) {
+                    continue;
+                }
+                std::string hash(doc["hash"].get_string().value);
+                result.emplace(std::move(hash), BPO(doc));
+            }
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error batch-retrieving from CAS: " << e.what() << std::endl;
+    }
+
+    return result;
 }
 
 std::unique_ptr<BPO> CAS::retrieve(const std::string& hash) {

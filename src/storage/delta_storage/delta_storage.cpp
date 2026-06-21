@@ -5,10 +5,13 @@
 #include <bsoncxx/builder/basic/array.hpp>
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/builder/basic/kvp.hpp>
+#include <bsoncxx/document/value.hpp>
 #include <bsoncxx/types.hpp>
+#include <mongocxx/collection.hpp>
 
 #include <chrono>
 #include <stdexcept>
+#include <vector>
 
 namespace geoversion {
 namespace storage {
@@ -18,22 +21,25 @@ using bsoncxx::builder::basic::make_document;
 
 namespace {
 
-bsoncxx::builder::basic::array to_string_array(const std::vector<std::string>& values) {
-    bsoncxx::builder::basic::array arr;
-    for (const auto& value : values) {
-        arr.append(value);
+constexpr std::size_t kItemBatchSize = 5000;
+
+void flush_items(mongocxx::collection& items_coll, std::vector<bsoncxx::document::value>& batch) {
+    if (batch.empty()) {
+        return;
     }
-    return arr;
+    items_coll.insert_many(batch);
+    batch.clear();
 }
 
-std::vector<std::string> read_string_array(const bsoncxx::document::view& doc, const char* field) {
-    std::vector<std::string> result;
-    if (doc[field]) {
-        for (auto&& element : doc[field].get_array().value) {
-            result.push_back(std::string(element.get_string().value));
+void append_plain_items(mongocxx::collection& items_coll, std::vector<bsoncxx::document::value>& batch,
+                        const std::string& delta_id, const char* kind,
+                        const std::vector<std::string>& values) {
+    for (const auto& value : values) {
+        batch.push_back(make_document(kvp("delta_id", delta_id), kvp("kind", kind), kvp("value", value)));
+        if (batch.size() >= kItemBatchSize) {
+            flush_items(items_coll, batch);
         }
     }
-    return result;
 }
 
 } // namespace
@@ -58,25 +64,33 @@ std::string DeltaStorage::store(const diff::DiffResult& diff, const std::string&
     std::string delta_id = utils::generate_uuid();
     const auto now = bsoncxx::types::b_date{std::chrono::system_clock::now()};
 
-    bsoncxx::builder::basic::array likely_modified_arr;
-    for (const auto& pair : diff.likely_modified) {
-        likely_modified_arr.append(make_document(
-            kvp("removed_hash", pair.removed_hash), kvp("added_hash", pair.added_hash),
-            kvp("confidence", pair.confidence), kvp("distance_m", pair.distance_m)));
-    }
-
     auto doc = make_document(kvp("delta_id", delta_id), kvp("from_version_id", from_version_id),
-                             kvp("to_version_id", to_version_id),
-                             kvp("added", to_string_array(diff.added)),
-                             kvp("removed", to_string_array(diff.removed)),
-                             kvp("modified", to_string_array(diff.modified)),
-                             kvp("unchanged", to_string_array(diff.unchanged)),
-                             kvp("likely_modified", likely_modified_arr), kvp("created_at", now));
+                             kvp("to_version_id", to_version_id), kvp("created_at", now));
 
     auto inserted = collection.insert_one(doc.view());
     if (!inserted || inserted->result().inserted_count() == 0) {
         throw std::runtime_error("Failed to insert delta into database");
     }
+
+    auto items_coll = connection_.get_delta_items_collection();
+    std::vector<bsoncxx::document::value> batch;
+    batch.reserve(kItemBatchSize);
+
+    append_plain_items(items_coll, batch, delta_id, "added", diff.added);
+    append_plain_items(items_coll, batch, delta_id, "removed", diff.removed);
+    append_plain_items(items_coll, batch, delta_id, "modified", diff.modified);
+    append_plain_items(items_coll, batch, delta_id, "unchanged", diff.unchanged);
+
+    for (const auto& pair : diff.likely_modified) {
+        batch.push_back(make_document(
+            kvp("delta_id", delta_id), kvp("kind", "likely_modified"),
+            kvp("removed_hash", pair.removed_hash), kvp("added_hash", pair.added_hash),
+            kvp("confidence", pair.confidence), kvp("distance_m", pair.distance_m)));
+        if (batch.size() >= kItemBatchSize) {
+            flush_items(items_coll, batch);
+        }
+    }
+    flush_items(items_coll, batch);
 
     return delta_id;
 }
@@ -90,7 +104,7 @@ std::optional<diff::DiffResult> DeltaStorage::get(const std::string& delta_id) c
         return std::nullopt;
     }
 
-    return from_document(result->view());
+    return load_items(delta_id);
 }
 
 std::optional<diff::DiffResult> DeltaStorage::find(const std::string& from_version_id,
@@ -104,34 +118,52 @@ std::optional<diff::DiffResult> DeltaStorage::find(const std::string& from_versi
         return std::nullopt;
     }
 
-    return from_document(result->view());
+    auto delta_id = std::string(result->view()["delta_id"].get_string().value);
+    return load_items(delta_id);
 }
 
-diff::DiffResult DeltaStorage::from_document(const bsoncxx::document::view& doc) const {
+diff::DiffResult DeltaStorage::load_items(const std::string& delta_id) const {
     diff::DiffResult diff;
 
-    diff.added = read_string_array(doc, "added");
-    diff.removed = read_string_array(doc, "removed");
-    diff.modified = read_string_array(doc, "modified");
-    diff.unchanged = read_string_array(doc, "unchanged");
+    auto items_coll = connection_.get_delta_items_collection();
+    auto filter = make_document(kvp("delta_id", delta_id));
+    auto cursor = items_coll.find(filter.view());
 
-    if (doc["likely_modified"]) {
-        for (auto&& element : doc["likely_modified"].get_array().value) {
-            auto pair_doc = element.get_document().value;
+    for (auto&& doc : cursor) {
+        if (!doc["kind"]) {
+            continue;
+        }
+        std::string kind = std::string(doc["kind"].get_string().value);
+        if (kind == "likely_modified") {
             diff::DiffResult::SimilarityPair pair;
-            if (pair_doc["removed_hash"]) {
-                pair.removed_hash = std::string(pair_doc["removed_hash"].get_string().value);
+            if (doc["removed_hash"]) {
+                pair.removed_hash = std::string(doc["removed_hash"].get_string().value);
             }
-            if (pair_doc["added_hash"]) {
-                pair.added_hash = std::string(pair_doc["added_hash"].get_string().value);
+            if (doc["added_hash"]) {
+                pair.added_hash = std::string(doc["added_hash"].get_string().value);
             }
-            if (pair_doc["confidence"]) {
-                pair.confidence = pair_doc["confidence"].get_double().value;
+            if (doc["confidence"]) {
+                pair.confidence = doc["confidence"].get_double().value;
             }
-            if (pair_doc["distance_m"]) {
-                pair.distance_m = pair_doc["distance_m"].get_double().value;
+            if (doc["distance_m"]) {
+                pair.distance_m = doc["distance_m"].get_double().value;
             }
             diff.likely_modified.push_back(pair);
+            continue;
+        }
+
+        if (!doc["value"]) {
+            continue;
+        }
+        std::string value = std::string(doc["value"].get_string().value);
+        if (kind == "added") {
+            diff.added.push_back(std::move(value));
+        } else if (kind == "removed") {
+            diff.removed.push_back(std::move(value));
+        } else if (kind == "modified") {
+            diff.modified.push_back(std::move(value));
+        } else if (kind == "unchanged") {
+            diff.unchanged.push_back(std::move(value));
         }
     }
 

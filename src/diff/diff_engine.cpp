@@ -19,30 +19,42 @@ namespace {
 std::vector<GeoCandidate> build_candidates(const std::vector<std::string>& object_ids,
                                            const std::unordered_map<std::string, std::string>& map,
                                            storage::CAS& cas) {
-    std::vector<GeoCandidate> candidates;
+    std::vector<std::string> hashes;
+    hashes.reserve(object_ids.size());
     for (const auto& object_id : object_ids) {
         auto it = map.find(object_id);
-        if (it == map.end()) {
+        if (it != map.end()) {
+            hashes.push_back(it->second);
+        }
+    }
+
+    auto bpos_by_hash = cas.retrieve_many(hashes);
+
+    std::vector<GeoCandidate> candidates;
+    candidates.reserve(object_ids.size());
+    for (const auto& object_id : object_ids) {
+        auto map_it = map.find(object_id);
+        if (map_it == map.end()) {
             continue;
         }
 
-        auto bpo = cas.retrieve(it->second);
-        if (!bpo) {
+        auto bpo_it = bpos_by_hash.find(map_it->second);
+        if (bpo_it == bpos_by_hash.end()) {
             continue;
         }
+        const storage::BPO& bpo = bpo_it->second;
 
-        RepresentativePoint point =
-            representative_point(bpo->get_geometry(), bpo->get_geometry_type());
+        RepresentativePoint point = representative_point(bpo.get_geometry(), bpo.get_geometry_type());
         if (!point.valid) {
             continue;
         }
 
         GeoCandidate candidate;
         candidate.object_id = object_id;
-        candidate.hash = it->second;
+        candidate.hash = map_it->second;
         candidate.lon = point.lon;
         candidate.lat = point.lat;
-        candidate.type = bpo->get_geometry_type();
+        candidate.type = bpo.get_geometry_type();
         candidates.push_back(std::move(candidate));
     }
     return candidates;

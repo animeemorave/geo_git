@@ -175,51 +175,41 @@ db.createCollection('version_deltas', {
                     bsonType: 'string',
                     description: 'Target version ID'
                 },
-                added: {
-                    bsonType: 'array',
-                    items: {
-                        bsonType: 'string'
-                    },
-                    description: 'object_ids of added objects'
-                },
-                removed: {
-                    bsonType: 'array',
-                    items: {
-                        bsonType: 'string'
-                    },
-                    description: 'object_ids of removed objects'
-                },
-                modified: {
-                    bsonType: 'array',
-                    items: {
-                        bsonType: 'string'
-                    },
-                    description: 'object_ids of modified objects (same object_id, different hash)'
-                },
-                unchanged: {
-                    bsonType: 'array',
-                    items: {
-                        bsonType: 'string'
-                    },
-                    description: 'object_ids of unchanged objects'
-                },
-                likely_modified: {
-                    bsonType: 'array',
-                    items: {
-                        bsonType: 'object',
-                        properties: {
-                            removed_hash: { bsonType: 'string' },
-                            added_hash: { bsonType: 'string' },
-                            confidence: { bsonType: 'double' },
-                            distance_m: { bsonType: 'double' }
-                        }
-                    },
-                    description: 'Level 2 entity-resolution heuristics (similarity pairs)'
-                },
                 created_at: {
                     bsonType: 'date',
                     description: 'Creation timestamp'
                 }
+            }
+        }
+    }
+});
+
+// Delta entries (added/removed/modified/unchanged/likely_modified) live in a
+// separate collection, one document per entry, so a single delta can hold
+// arbitrarily many objects without hitting the 16MB BSON document limit.
+db.createCollection('delta_items', {
+    validator: {
+        $jsonSchema: {
+            bsonType: 'object',
+            required: ['delta_id', 'kind'],
+            properties: {
+                delta_id: {
+                    bsonType: 'string',
+                    description: 'Reference to version_deltas'
+                },
+                kind: {
+                    bsonType: 'string',
+                    enum: ['added', 'removed', 'modified', 'unchanged', 'likely_modified'],
+                    description: 'Which DiffResult bucket this entry belongs to'
+                },
+                value: {
+                    bsonType: 'string',
+                    description: 'object_id, for added/removed/modified/unchanged entries'
+                },
+                removed_hash: { bsonType: 'string' },
+                added_hash: { bsonType: 'string' },
+                confidence: { bsonType: 'double' },
+                distance_m: { bsonType: 'double' }
             }
         }
     }
@@ -289,6 +279,12 @@ db.version_deltas.createIndex(
 db.version_deltas.createIndex(
     { 'from_version_id': 1, 'to_version_id': 1 },
     { name: 'delta_lookup_idx' }
+);
+
+// Index for delta items
+db.delta_items.createIndex(
+    { 'delta_id': 1, 'kind': 1 },
+    { name: 'delta_items_lookup_idx' }
 );
 
 print('Geospatial indexes created successfully.');
