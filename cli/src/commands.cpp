@@ -4,7 +4,9 @@
 
 #include <cstdint>
 #include <ctime>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -457,6 +459,77 @@ int cmd_get_bpo(GeoGitClient& client, const std::vector<std::string>& args) {
     return 0;
 }
 
+int cmd_import(GeoGitClient& client, const std::vector<std::string>& args) {
+    if (args.size() < 3) {
+        std::cerr << "usage: geogit import <situation_id> <file.geojson> "
+                     "[-m msg] [-a author] [-b branch_id] [--gen-ids]"
+                  << std::endl;
+        return 1;
+    }
+
+    std::ifstream file(args[2]);
+    if (!file) {
+        std::cerr << "cannot open file: " << args[2] << std::endl;
+        return 1;
+    }
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+
+    geogit::ImportFeaturesRequest request;
+    request.set_situation_id(args[1]);
+    request.set_geojson(buffer.str());
+    for (size_t i = 3; i < args.size(); ++i) {
+        if (args[i] == "-m" && i + 1 < args.size()) {
+            request.set_message(args[++i]);
+        } else if (args[i] == "-a" && i + 1 < args.size()) {
+            request.set_author(args[++i]);
+        } else if (args[i] == "-b" && i + 1 < args.size()) {
+            request.set_advance_branch_id(args[++i]);
+        } else if (args[i] == "--gen-ids") {
+            request.set_generate_object_ids(true);
+        }
+    }
+
+    grpc::ClientContext ctx;
+    geogit::VersionResponse response;
+    grpc::Status status = client.stub()->ImportFeatures(&ctx, request, &response);
+    if (!status.ok()) {
+        return fail(status);
+    }
+    std::cout << "Imported " << response.version().objects_size() << " feature(s) into version "
+              << response.version().meta().version_id() << "\n";
+    return 0;
+}
+
+int cmd_export(GeoGitClient& client, const std::vector<std::string>& args) {
+    if (args.size() < 2) {
+        std::cerr << "usage: geogit export <version_id> [file.geojson]" << std::endl;
+        return 1;
+    }
+
+    grpc::ClientContext ctx;
+    geogit::ExportFeaturesRequest request;
+    request.set_version_id(args[1]);
+    geogit::ExportFeaturesResponse response;
+    grpc::Status status = client.stub()->ExportFeatures(&ctx, request, &response);
+    if (!status.ok()) {
+        return fail(status);
+    }
+
+    if (args.size() > 2) {
+        std::ofstream out(args[2]);
+        if (!out) {
+            std::cerr << "cannot write file: " << args[2] << std::endl;
+            return 1;
+        }
+        out << response.geojson();
+        std::cout << "Wrote " << args[2] << "\n";
+    } else {
+        std::cout << response.geojson() << "\n";
+    }
+    return 0;
+}
+
 } // namespace
 
 void print_usage() {
@@ -480,7 +553,11 @@ void print_usage() {
         << "  branch delete <branch_id>\n"
         << "  checkout <version_id>                          stream a version's BPOs\n"
         << "  store-bpo <geometry_json> [attributes_json]    store a BPO, print its hash\n"
-        << "  get-bpo <hash>                                 fetch a BPO\n\n"
+        << "  get-bpo <hash>                                 fetch a BPO\n"
+        << "  import <situation_id> <file.geojson>\n"
+        << "         [-m msg] [-a author] [-b branch_id] [--gen-ids]   ingest a FeatureCollection\n"
+        << "  export <version_id> [file.geojson]             dump a version as a "
+           "FeatureCollection\n\n"
         << "server address: --server flag or GEOGIT_SERVER env (default localhost:50051)\n";
 }
 
@@ -525,6 +602,12 @@ int dispatch(GeoGitClient& client, const std::vector<std::string>& args) {
     }
     if (command == "get-bpo") {
         return cmd_get_bpo(client, args);
+    }
+    if (command == "import") {
+        return cmd_import(client, args);
+    }
+    if (command == "export") {
+        return cmd_export(client, args);
     }
     if (command == "help" || command == "--help" || command == "-h") {
         print_usage();

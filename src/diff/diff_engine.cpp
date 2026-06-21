@@ -93,7 +93,9 @@ void DiffEngine::set_entity_matcher(storage::CAS& cas, const EntityMatcher& matc
 
 DiffResult DiffEngine::compute(const std::string& from_version_id,
                                const std::string& to_version_id) {
-    if (delta_storage_) {
+    bool entity_resolution = matcher_ != nullptr && cas_ != nullptr;
+
+    if (delta_storage_ && !entity_resolution) {
         auto cached = delta_storage_->find(from_version_id, to_version_id);
         if (cached) {
             return *cached;
@@ -111,7 +113,7 @@ DiffResult DiffEngine::compute(const std::string& from_version_id,
 
     DiffResult result = diff_object_maps(from->objects, to->objects);
 
-    if (matcher_ != nullptr && cas_ != nullptr) {
+    if (entity_resolution) {
         compute_level2(from->objects, to->objects, result);
     }
 

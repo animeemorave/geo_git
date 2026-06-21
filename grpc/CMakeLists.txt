@@ -67,6 +67,7 @@ set(SERVICE_SOURCES
     src/handlers/bpo_handler.cpp
     src/handlers/diff_handler.cpp
     src/handlers/merge_handler.cpp
+    src/handlers/import_handler.cpp
 )
 
 add_library(geogit_service STATIC

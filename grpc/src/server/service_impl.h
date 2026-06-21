@@ -73,6 +73,13 @@ public:
     grpc::Status FindInBBox(grpc::ServerContext* context, const geogit::FindInBBoxRequest* request,
                             grpc::ServerWriter<geogit::BPOResponse>* writer) override;
 
+    grpc::Status ImportFeatures(grpc::ServerContext* context,
+                                const geogit::ImportFeaturesRequest* request,
+                                geogit::VersionResponse* response) override;
+    grpc::Status ExportFeatures(grpc::ServerContext* context,
+                                const geogit::ExportFeaturesRequest* request,
+                                geogit::ExportFeaturesResponse* response) override;
+
     grpc::Status GetStatus(grpc::ServerContext* context, const geogit::GetStatusRequest* request,
                            geogit::DiffResponse* response) override;
     grpc::Status ComputeDiff(grpc::ServerContext* context,

@@ -27,6 +27,9 @@ service GeoGit {
     rpc GetBPO(GetBPORequest) returns (BPOResponse);
     rpc FindInBBox(FindInBBoxRequest) returns (stream BPOResponse);
 
+    rpc ImportFeatures(ImportFeaturesRequest) returns (VersionResponse);
+    rpc ExportFeatures(ExportFeaturesRequest) returns (ExportFeaturesResponse);
+
     rpc GetStatus(GetStatusRequest) returns (DiffResponse);
     rpc ComputeDiff(ComputeDiffRequest) returns (DiffResponse);
     rpc GetDelta(GetDeltaRequest) returns (DiffResponse);
@@ -180,6 +183,24 @@ message BPOResponse {
 
 message CheckoutRequest {
     string version_id = 1;
+}
+
+message ImportFeaturesRequest {
+    string situation_id = 1;
+    string geojson = 2;
+    repeated string parent_version_ids = 3;
+    string message = 4;
+    string author = 5;
+    string advance_branch_id = 6;
+    bool generate_object_ids = 7;
+}
+
+message ExportFeaturesRequest {
+    string version_id = 1;
+}
+
+message ExportFeaturesResponse {
+    string geojson = 1;
 }
 
 message FindInBBoxRequest {

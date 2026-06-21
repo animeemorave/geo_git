@@ -26,6 +26,8 @@ public:
     bool store(const std::string& hash, const bsoncxx::document::view& geometry,
                const bsoncxx::document::view& attributes);
 
+    size_t store_many(const std::vector<BPO>& bpos);
+
     std::unique_ptr<BPO> retrieve(const std::string& hash);
     bool exists(const std::string& hash);
 
